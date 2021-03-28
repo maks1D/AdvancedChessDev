@@ -30,6 +30,8 @@ typedef struct
 	Server* server;
 } Server_ConnectionThreadArgument;
 
+void Server_PrintError(const char* message);
+void Server_PrintMessage(const char* message);
 char* Server_GetTime();
 void Server_SetStaticFilesMaxSize(Server* server, int size);
 void Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType);

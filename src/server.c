@@ -1,6 +1,28 @@
 #include "server.h"
 
-#pragma warning(disable : 4244 6001 6011 6387)
+#pragma warning(disable : 4244 6001 6011 6031 6387)
+
+void Server_PrintError(const char* message)
+{
+	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(console, 4);
+
+	printf("%s", message);
+
+	SetConsoleTextAttribute(console, 7);
+	CloseHandle(console);
+}
+
+void Server_PrintMessage(const char* message)
+{
+	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(console, 2);
+
+	printf("%s", message);
+
+	SetConsoleTextAttribute(console, 7);
+	CloseHandle(console);
+}
 
 void Server_Start(Server* server, const char* port)
 {
@@ -8,7 +30,7 @@ void Server_Start(Server* server, const char* port)
 
 	if (WSAStartup(MAKEWORD(2, 2), &windowsSocketsData) != NO_ERROR)
 	{
-		printf("Failed to initialize Windows Sockets!\n");
+		Server_PrintError("Failed to initialize Windows Sockets!\n");
 
 		return;
 	}
@@ -23,7 +45,7 @@ void Server_Start(Server* server, const char* port)
 
 	if (getaddrinfo(NULL, port, &addressInformation, &result) != NO_ERROR)
 	{
-		printf("Failed to get address information!\n");
+		Server_PrintError("Failed to get address information!\n");
 		WSACleanup();
 
 		return;
@@ -33,7 +55,7 @@ void Server_Start(Server* server, const char* port)
 
 	if (server->socket == INVALID_SOCKET)
 	{
-		printf("Failed to create a socket!\n");
+		Server_PrintError("Failed to create a socket!\n");
 		freeaddrinfo(result);
 		WSACleanup();
 
@@ -42,7 +64,7 @@ void Server_Start(Server* server, const char* port)
 
 	if (bind(server->socket, result->ai_addr, result->ai_addrlen) == SOCKET_ERROR)
 	{
-		printf("Failed to bind to the port!\n");
+		Server_PrintError("Failed to bind to the port!\n");
 		closesocket(server->socket);
 		freeaddrinfo(result);
 		WSACleanup();
@@ -54,14 +76,14 @@ void Server_Start(Server* server, const char* port)
 
 	if (listen(server->socket, SOMAXCONN) == SOCKET_ERROR)
 	{
-		printf("Failed to listen!\n");
+		Server_PrintError("Failed to listen!\n");
 		closesocket(server->socket);
 		WSACleanup();
 
 		return;
 	}
 
-	printf("Server is now listening on port %s!\n", port);
+	Server_PrintMessage("Server started!\n");
 
 	while (1)
 	{
@@ -79,12 +101,7 @@ void Server_Start(Server* server, const char* port)
 			connectionThreadArgument->server = server;
 			connectionThreadArgument->socket = socket;
 
-			HANDLE thread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Server_ConnectionThread, connectionThreadArgument, 0, NULL);
-
-			if (thread != NULL)
-			{
-				CloseHandle(thread);
-			}
+			CloseHandle(CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Server_ConnectionThread, connectionThreadArgument, 0, NULL));
 		}
 	}
 }
@@ -101,7 +118,7 @@ void Server_AddStaticFile(Server* server, const char* path, const char* url, con
 
 	if (file == INVALID_HANDLE_VALUE)
 	{
-		printf("Failed to add a static file!");
+		Server_PrintError("Failed to add a static file!\n");
 		return;
 	}
 
@@ -109,20 +126,14 @@ void Server_AddStaticFile(Server* server, const char* path, const char* url, con
 	GetFileSizeEx(file, &size);
 
 	server->staticFiles[server->staticFilesCount].buffer = malloc(size.QuadPart + 1);
+	ReadFile(file, server->staticFiles[server->staticFilesCount].buffer, size.QuadPart, NULL, NULL);
+
 	server->staticFiles[server->staticFilesCount].path = path;
 	server->staticFiles[server->staticFilesCount].url = url;
 	server->staticFiles[server->staticFilesCount].contentType = contentType;
 	server->staticFiles[server->staticFilesCount].bufferLength = size.QuadPart;
-
-	if (server->staticFiles[server->staticFilesCount].buffer == NULL || !ReadFile(file, (void*)server->staticFiles[server->staticFilesCount].buffer, size.QuadPart, NULL, NULL))
-	{
-		printf("Failed to read a static file!");
-	}
-	else
-	{
-		server->staticFiles[server->staticFilesCount].buffer[size.QuadPart] = 0;
-		server->staticFilesCount++;
-	}
+	server->staticFiles[server->staticFilesCount].buffer[size.QuadPart] = 0;
+	server->staticFilesCount++;
 
 	CloseHandle(file);
 }
