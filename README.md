@@ -2,6 +2,21 @@
 
 AdvancedChess is an open-source cross-platform dependency-free chess server written in C.
 
+## This project is still in development state. Working features:
+
+- [ ] Creating accounts
+- [ ] Logging in
+- [ ] Join messages
+- [ ] Online members list
+- [ ] Sending messages
+- [ ] Deleting messages
+- [ ] Editing messages
+- [ ] Adding reactions
+- [ ] Removing reactions
+- [ ] Creating games
+- [ ] Making moves
+- [ ] Games analysis
+
 ## Prerequisites
 
 ### Windows
