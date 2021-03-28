@@ -9,7 +9,6 @@ void Server_PrintError(const char* message)
 	printf("%s", message);
 
 	SetConsoleTextAttribute(console, 7);
-	CloseHandle(console);
 #else
 	printf("\x1b[31m%s\x1b[0m", message);
 #endif
@@ -24,7 +23,6 @@ void Server_PrintMessage(const char* message)
 	printf("%s", message);
 
 	SetConsoleTextAttribute(console, 7);
-	CloseHandle(console);
 #else
 	printf("\x1b[32m%s\x1b[0m", message);
 #endif
@@ -115,6 +113,10 @@ void Server_Start(Server* server, const char* port)
 
 	Server_PrintMessage("Server started!\n");
 
+	Server_ConnectionThreadArgument connectionThreadArgument;
+	connectionThreadArgument.server = server;
+	connectionThreadArgument.socket = -1;
+
 	while (1)
 	{
 		int socket = accept(server->socket, NULL, NULL);
@@ -124,15 +126,18 @@ void Server_Start(Server* server, const char* port)
 			continue;
 		}
 
-		Server_ConnectionThreadArgument* connectionThreadArgument = malloc(sizeof(Server_ConnectionThreadArgument));
-		connectionThreadArgument->server = server;
-		connectionThreadArgument->socket = socket;
+		while (connectionThreadArgument.socket != -1)
+		{
+			printf("");
+		}
+
+		connectionThreadArgument.socket = socket;
 
 #ifdef WIN32
-		CloseHandle(CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Server_ConnectionThread, connectionThreadArgument, 0, NULL));
+		CloseHandle(CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Server_ConnectionThread, &connectionThreadArgument, 0, NULL));
 #else
 		pthread_t thread;
-		pthread_create(&thread, NULL, (void*)&Server_ConnectionThread, connectionThreadArgument);
+		pthread_create(&thread, NULL, (void*)&Server_ConnectionThread, &connectionThreadArgument);
 #endif
 	}
 }
@@ -193,27 +198,32 @@ void Server_AddStaticFile(Server* server, const char* path, const char* url, con
 #endif
 }
 
-void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadArgument)
+void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadArgumentPointer)
 {
+	Server_ConnectionThreadArgument connectionThreadArgument;
+	connectionThreadArgument.server = connectionThreadArgumentPointer->server;
+	connectionThreadArgument.socket = connectionThreadArgumentPointer->socket;
+
+	connectionThreadArgumentPointer->socket = -1;
+
 	char* buffer = malloc(SERVER_BUFFER_LENGTH);
-	int result = recv(connectionThreadArgument->socket, buffer, SERVER_BUFFER_LENGTH, 0);
+	int result = recv(connectionThreadArgument.socket, buffer, SERVER_BUFFER_LENGTH, 0);
 
 	if (result == SERVER_BUFFER_LENGTH)
 	{
 		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
 		int bufferLength = Server_GenerateResponse("HTTP/1.1", 413, "Payload Too Large", responseBuffer);
 		
-		send(connectionThreadArgument->socket, responseBuffer, bufferLength, 0);
+		send(connectionThreadArgument.socket, responseBuffer, bufferLength, 0);
 
 #ifdef WIN32
-		closesocket(connectionThreadArgument->socket);
+		closesocket(connectionThreadArgument.socket);
 #else
-		close(connectionThreadArgument->socket);
+		close(connectionThreadArgument.socket);
 #endif
 
 		free(responseBuffer);
 		free(buffer);
-		free(connectionThreadArgument);
 
 		return;
 	}
@@ -221,13 +231,12 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 	if (result < 0)
 	{
 #ifdef WIN32
-		closesocket(connectionThreadArgument->socket);
+		closesocket(connectionThreadArgument.socket);
 #else
-		close(connectionThreadArgument->socket);
+		close(connectionThreadArgument.socket);
 #endif
 
 		free(buffer);
-		free(connectionThreadArgument);
 
 		return;
 	}
@@ -253,17 +262,16 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
 		int responseLength = Server_GenerateResponse("HTTP/1.1", 400, "Bad Request", responseBuffer);
 		
-		send(connectionThreadArgument->socket, responseBuffer, responseLength, 0);
+		send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
 #ifdef WIN32
-		closesocket(connectionThreadArgument->socket);
+		closesocket(connectionThreadArgument.socket);
 #else
-		close(connectionThreadArgument->socket);
+		close(connectionThreadArgument.socket);
 #endif
 
 		free(responseBuffer);
 		free(buffer);
-		free(connectionThreadArgument);
 
 		return;
 	}
@@ -283,17 +291,16 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
 		int responseLength = Server_GenerateResponse("HTTP/1.1", 400, "Bad Request", responseBuffer);
 		
-		send(connectionThreadArgument->socket, responseBuffer, responseLength, 0);
+		send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
 #ifdef WIN32
-		closesocket(connectionThreadArgument->socket);
+		closesocket(connectionThreadArgument.socket);
 #else
-		close(connectionThreadArgument->socket);
+		close(connectionThreadArgument.socket);
 #endif
 
 		free(responseBuffer);
 		free(buffer);
-		free(connectionThreadArgument);
 
 		return;
 	}
@@ -308,17 +315,16 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
 		int responseLength = Server_GenerateResponse("HTTP/1.1", 400, "Bad Request", responseBuffer);
 		
-		send(connectionThreadArgument->socket, responseBuffer, responseLength, 0);
+		send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
 #ifdef WIN32
-		closesocket(connectionThreadArgument->socket);
+		closesocket(connectionThreadArgument.socket);
 #else
-		close(connectionThreadArgument->socket);
+		close(connectionThreadArgument.socket);
 #endif
 
 		free(responseBuffer);
 		free(buffer);
-		free(connectionThreadArgument);
 
 		return;
 	}
@@ -328,44 +334,42 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
 		int responseLength = Server_GenerateResponseWithHeader(httpVersion, 405, "Method Not Allowed", "Allow: GET, HEAD", responseBuffer);
 		
-		send(connectionThreadArgument->socket, responseBuffer, responseLength, 0);
+		send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
 #ifdef WIN32
-		closesocket(connectionThreadArgument->socket);
+		closesocket(connectionThreadArgument.socket);
 #else
-		close(connectionThreadArgument->socket);
+		close(connectionThreadArgument.socket);
 #endif
 
 		free(responseBuffer);
 		free(buffer);
-		free(connectionThreadArgument);
 
 		return;
 	}
 
-	for (int index = 0; index < connectionThreadArgument->server->staticFilesCount; index++)
+	for (int index = 0; index < connectionThreadArgument.server->staticFilesCount; index++)
 	{
-		if (strcmp(url, connectionThreadArgument->server->staticFiles[index].url) == 0)
+		if (strcmp(url, connectionThreadArgument.server->staticFiles[index].url) == 0)
 		{
 			char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
-			int responseLength = Server_GenerateResponseWithBody(httpVersion, 200, "OK", connectionThreadArgument->server->staticFiles[index].bufferLength, connectionThreadArgument->server->staticFiles[index].contentType, responseBuffer);
+			int responseLength = Server_GenerateResponseWithBody(httpVersion, 200, "OK", connectionThreadArgument.server->staticFiles[index].bufferLength, connectionThreadArgument.server->staticFiles[index].contentType, responseBuffer);
 
-			send(connectionThreadArgument->socket, responseBuffer, responseLength, 0);
+			send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
 			if (strcmp(method, "GET") == 0)
 			{
-				send(connectionThreadArgument->socket, connectionThreadArgument->server->staticFiles[index].buffer, connectionThreadArgument->server->staticFiles[index].bufferLength, 0);
+				send(connectionThreadArgument.socket, connectionThreadArgument.server->staticFiles[index].buffer, connectionThreadArgument.server->staticFiles[index].bufferLength, 0);
 			}
 			
 #ifdef WIN32
-			closesocket(connectionThreadArgument->socket);
+			closesocket(connectionThreadArgument.socket);
 #else
-			close(connectionThreadArgument->socket);
+			close(connectionThreadArgument.socket);
 #endif
 
 			free(responseBuffer);
 			free(buffer);
-			free(connectionThreadArgument);
 
 			return;
 		}
@@ -374,17 +378,16 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 	char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
 	int responseLength = Server_GenerateResponseWithHeader(httpVersion, 303, "See Other", "Location: /", responseBuffer);
 	
-	send(connectionThreadArgument->socket, responseBuffer, responseLength, 0);
+	send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
 #ifdef WIN32
-	closesocket(connectionThreadArgument->socket);
+	closesocket(connectionThreadArgument.socket);
 #else
-	close(connectionThreadArgument->socket);
+	close(connectionThreadArgument.socket);
 #endif
 
 	free(responseBuffer);
 	free(buffer);
-	free(connectionThreadArgument);
 }
 
 char* Server_GetTime()
