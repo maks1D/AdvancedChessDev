@@ -1,5 +1,7 @@
 /.vs
 /Debug
 /Release
-/build/AdvancedChess.exe
-/bulid/data
+/AdvancedChess.exe
+/AdvancedChess
+/data
+/obj

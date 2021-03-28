@@ -61,7 +61,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(TargetDir)$(TargetName).exe" "$(SolutionDir)build\$(TargetName).exe"</Command>
+      <Command>copy /Y "$(TargetDir)$(TargetName).exe" "$(SolutionDir)$(TargetName).exe"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -80,7 +80,7 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(TargetDir)$(TargetName).exe" "$(SolutionDir)build\$(TargetName).exe"</Command>
+      <Command>copy /Y "$(TargetDir)$(TargetName).exe" "$(SolutionDir)$(TargetName).exe"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
