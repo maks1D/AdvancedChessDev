@@ -11,3 +11,7 @@ Open `AdvancedChess.sln` in Visual Studio 2019, select **Release** configuration
 ## Running
 
 Open the executable file located in the `build` directory.
+
+## License
+
+This project is licensed under the MIT License - see the `LICENSE` file for details.
