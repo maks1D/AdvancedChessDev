@@ -209,25 +209,6 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 	char* buffer = malloc(SERVER_BUFFER_LENGTH);
 	int result = recv(connectionThreadArgument.socket, buffer, SERVER_BUFFER_LENGTH, 0);
 
-	if (result == SERVER_BUFFER_LENGTH)
-	{
-		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
-		int bufferLength = Server_GenerateResponse("HTTP/1.1", 413, "Payload Too Large", responseBuffer);
-		
-		send(connectionThreadArgument.socket, responseBuffer, bufferLength, 0);
-
-#ifdef WIN32
-		closesocket(connectionThreadArgument.socket);
-#else
-		close(connectionThreadArgument.socket);
-#endif
-
-		free(responseBuffer);
-		free(buffer);
-
-		return;
-	}
-
 	if (result < 0)
 	{
 #ifdef WIN32
@@ -246,6 +227,7 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 		if (buffer[index - 1] == '\r' && buffer[index] == '\n')
 		{
 			buffer[index - 1] = '\x00';
+			break;
 		}
 	}
 
@@ -260,7 +242,7 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 	if (index == length)
 	{
 		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
-		int responseLength = Server_GenerateResponse("HTTP/1.1", 400, "Bad Request", responseBuffer);
+		int responseLength = Server_GenerateResponse(400, "Bad Request", responseBuffer);
 		
 		send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
@@ -281,7 +263,7 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 
 	char* url = &buffer[index];
 
-	while (index < length && buffer[index] != ' ')
+	while (index < length && buffer[index] != ' ' && buffer[index] != '?')
 	{
 		index++;
 	}
@@ -289,7 +271,7 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 	if (index == length)
 	{
 		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
-		int responseLength = Server_GenerateResponse("HTTP/1.1", 400, "Bad Request", responseBuffer);
+		int responseLength = Server_GenerateResponse(400, "Bad Request", responseBuffer);
 		
 		send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
@@ -306,33 +288,11 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 	}
 
 	buffer[index] = '\x00';
-	index++;
-
-	char* httpVersion = &buffer[index];
-
-	if (strcmp(httpVersion, "HTTP/1.0") != 0 && strcmp(httpVersion, "HTTP/1.1") != 0)
-	{
-		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
-		int responseLength = Server_GenerateResponse("HTTP/1.1", 400, "Bad Request", responseBuffer);
-		
-		send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
-
-#ifdef WIN32
-		closesocket(connectionThreadArgument.socket);
-#else
-		close(connectionThreadArgument.socket);
-#endif
-
-		free(responseBuffer);
-		free(buffer);
-
-		return;
-	}
 
 	if (strcmp(method, "GET") != 0 && strcmp(method, "HEAD") != 0)
 	{
 		char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
-		int responseLength = Server_GenerateResponseWithHeader(httpVersion, 405, "Method Not Allowed", "Allow: GET, HEAD", responseBuffer);
+		int responseLength = Server_GenerateResponseWithHeader(405, "Method Not Allowed", "Allow: GET, HEAD", responseBuffer);
 		
 		send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
@@ -353,7 +313,7 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 		if (strcmp(url, connectionThreadArgument.server->staticFiles[index].url) == 0)
 		{
 			char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
-			int responseLength = Server_GenerateResponseWithBody(httpVersion, 200, "OK", connectionThreadArgument.server->staticFiles[index].bufferLength, connectionThreadArgument.server->staticFiles[index].contentType, responseBuffer);
+			int responseLength = Server_GenerateResponseWithBody(200, "OK", connectionThreadArgument.server->staticFiles[index].bufferLength, connectionThreadArgument.server->staticFiles[index].contentType, responseBuffer);
 
 			send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
@@ -376,7 +336,7 @@ void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadAr
 	}
 
 	char* responseBuffer = malloc(SERVER_BUFFER_LENGTH);
-	int responseLength = Server_GenerateResponseWithHeader(httpVersion, 303, "See Other", "Location: /", responseBuffer);
+	int responseLength = Server_GenerateResponseWithHeader(303, "See Other", "Location: /", responseBuffer);
 	
 	send(connectionThreadArgument.socket, responseBuffer, responseLength, 0);
 
@@ -395,25 +355,23 @@ char* Server_GetTime()
 	time_t rawTime;
 	time(&rawTime);
 
-	struct tm* timeInfo = gmtime(&rawTime);
-
-	char* output = asctime(timeInfo);
+	char* output = asctime(gmtime(&rawTime));
 	output[strlen(output) - 1] = '\x00';
 
 	return output;
 }
 
-int Server_GenerateResponse(const char* httpVersion, int responseCode, const char* responseStatus, char* output)
+int Server_GenerateResponse(int responseCode, const char* responseStatus, char* output)
 {
-	return sprintf(output, "%s %d %s\r\nDate: %s\r\nConnection: close\r\n\r\n", httpVersion, responseCode, responseStatus, Server_GetTime());
+	return sprintf(output, "HTTP/1.1 %d %s\r\nDate: %s\r\nConnection: close\r\n\r\n", responseCode, responseStatus, Server_GetTime());
 }
 
-int Server_GenerateResponseWithHeader(const char* httpVersion, int responseCode, const char* responseStatus, const char* header, char* output)
+int Server_GenerateResponseWithHeader(int responseCode, const char* responseStatus, const char* header, char* output)
 {
-	return sprintf(output, "%s %d %s\r\nDate: %s\r\nConnection: close\r\n%s\r\n\r\n", httpVersion, responseCode, responseStatus, Server_GetTime(), header);
+	return sprintf(output, "HTTP/1.1 %d %s\r\nDate: %s\r\nConnection: close\r\n%s\r\n\r\n", responseCode, responseStatus, Server_GetTime(), header);
 }
 
-int Server_GenerateResponseWithBody(const char* httpVersion, int responseCode, const char* responseStatus, int bufferLength, const char* contentType, char* output)
+int Server_GenerateResponseWithBody(int responseCode, const char* responseStatus, int bufferLength, const char* contentType, char* output)
 {
-	return sprintf(output, "%s %d %s\r\nDate: %s\r\nContent-Length: %d\r\nContent-Type: %s\r\nConnection: close\r\n\r\n", httpVersion, responseCode, responseStatus, Server_GetTime(), bufferLength, contentType);
+	return sprintf(output, "HTTP/1.1 %d %s\r\nDate: %s\r\nContent-Length: %d\r\nContent-Type: %s\r\nConnection: close\r\n\r\n", responseCode, responseStatus, Server_GetTime(), bufferLength, contentType);
 }
