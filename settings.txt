@@ -1,2 +1,0 @@
-SERVER_PORT=80                          # The server will listen on this port.
-SERVER_INTERNET_PROTOCOL_VERSION=4      # The version of Internet Protocol that will be used. Set it to "4" or "6".
