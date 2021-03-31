@@ -31,7 +31,6 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	if (WSAStartup(MAKEWORD(2, 2), &windowsSocketsData) != 0)
 	{
 		printf("Failed to initialize Windows Sockets!\n");
-
 		return;
 	}
 #endif
@@ -53,7 +52,6 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	else
 	{
 		printf("Invalid internet protocol version!\n");
-
 		return;
 	}
 
@@ -64,7 +62,6 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	if (getaddrinfo(NULL, port, &addressInformation, &result) != 0)
 	{
 		printf("Failed to get address information!\n");
-
 		return;
 	}
 
@@ -73,7 +70,14 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	if (serverSocket == SERVER_INVALID_SOCKET)
 	{
 		printf("Failed to create a socket!\n");
+		return;
+	}
 
+	int reuseAddress = 1;
+
+	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuseAddress, sizeof(reuseAddress)) == -1)
+	{
+		printf("Failed set socket options!\n");
 		return;
 	}
 
@@ -83,14 +87,12 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	if (ioctlsocket(serverSocket, FIONBIO, &mode) != 0)
 	{
 		printf("Failed to set non-blocking mode!");
-		
 		return;
 	}
 #else
 	if (fcntl(serverSocket, F_SETFL, O_NONBLOCK) == -1)
 	{
 		printf("Failed to set non-blocking mode!");
-
 		return;
 	}
 #endif
@@ -111,14 +113,12 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	if (listen(serverSocket, SOMAXCONN) == -1)
 	{
 		printf("Failed to listen!\n");
-
 		return;
 	}
 
 	printf("Server is now listening on port %s!\n", port);
 
 	char* buffer = malloc(SERVER_BUFFER_LENGTH);
-	int responseLength;
 
 #ifndef WIN32
 	static struct timespec delay;
@@ -158,8 +158,8 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 					{
 						if (connections[index].type == 1)
 						{
-							responseLength = sprintf(buffer, "HTTP/1.1 408 Request Timeout\r\nDate: %s\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<h1>Request timeout</h1>", Server_GetTime());
-							send(connections[index].socket, buffer, responseLength, 0);
+							bufferLength = sprintf(buffer, "HTTP/1.1 408 Request Timeout\r\nDate: %s\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<h1>Request timeout</h1>", Server_GetTime());
+							send(connections[index].socket, buffer, bufferLength, 0);
 						}
 
 #ifdef WIN32
@@ -213,8 +213,8 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 			if (position == length)
 			{
-				responseLength = sprintf(buffer, "HTTP/1.1 400 Bad Request\r\nDate: %s\r\nConnection: close\r\n\r\n", Server_GetTime());
-				send(connections[index].socket, buffer, responseLength, 0);
+				bufferLength = sprintf(buffer, "HTTP/1.1 400 Bad Request\r\nDate: %s\r\nConnection: close\r\n\r\n", Server_GetTime());
+				send(connections[index].socket, buffer, bufferLength, 0);
 
 #ifdef WIN32
 				closesocket(connections[index].socket);
@@ -242,8 +242,8 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 			if (position == length)
 			{
-				responseLength = sprintf(buffer, "HTTP/1.1 400 Bad Request\r\nDate: %s\r\nConnection: close\r\n\r\n", Server_GetTime());
-				send(connections[index].socket, buffer, responseLength, 0);
+				bufferLength = sprintf(buffer, "HTTP/1.1 400 Bad Request\r\nDate: %s\r\nConnection: close\r\n\r\n", Server_GetTime());
+				send(connections[index].socket, buffer, bufferLength, 0);
 
 #ifdef WIN32
 				closesocket(connections[index].socket);
@@ -262,8 +262,8 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 			if (strcmp(method, "GET") != 0 && strcmp(method, "HEAD") != 0)
 			{
-				responseLength = sprintf(buffer, "HTTP/1.1 405 Method Not Allowed\r\nDate: %s\r\nConnection: close\r\nAllow: GET, HEAD\r\n\r\n", Server_GetTime());
-				send(connections[index].socket, buffer, responseLength, 0);
+				bufferLength = sprintf(buffer, "HTTP/1.1 405 Method Not Allowed\r\nDate: %s\r\nConnection: close\r\nAllow: GET, HEAD\r\n\r\n", Server_GetTime());
+				send(connections[index].socket, buffer, bufferLength, 0);
 
 #ifdef WIN32
 				closesocket(connections[index].socket);
@@ -290,12 +290,12 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 				if (strcmp(url, server->staticFiles[file].url) == 0)
 				{
 					static int fullResponse;
-					fullResponse = strcmp(method, "GET") == 0;
+					fullResponse = strcmp(method, "GET");
 
-					responseLength = sprintf(buffer, "HTTP/1.1 200 OK\r\nDate: %s\r\nConnection: close\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n", Server_GetTime(), server->staticFiles[file].contentType, server->staticFiles[file].bufferLength);
-					send(connections[index].socket, buffer, responseLength, 0);
+					bufferLength = sprintf(buffer, "HTTP/1.1 200 OK\r\nDate: %s\r\nConnection: close\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n", Server_GetTime(), server->staticFiles[file].contentType, server->staticFiles[file].bufferLength);
+					send(connections[index].socket, buffer, bufferLength, 0);
 
-					if (fullResponse)
+					if (fullResponse == 0)
 					{
 						send(connections[index].socket, server->staticFiles[file].buffer, server->staticFiles[file].bufferLength, 0);
 					}
@@ -319,8 +319,8 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 				continue;
 			}
 
-			responseLength = sprintf(buffer, "HTTP/1.1 303 See Other\r\nDate: %s\r\nConnection: close\r\nLocation: /\r\n\r\n", Server_GetTime());
-			send(connections[index].socket, buffer, responseLength, 0);
+			bufferLength = sprintf(buffer, "HTTP/1.1 303 See Other\r\nDate: %s\r\nConnection: close\r\nLocation: /\r\n\r\n", Server_GetTime());
+			send(connections[index].socket, buffer, bufferLength, 0);
 
 #ifdef WIN32
 			closesocket(connections[index].socket);

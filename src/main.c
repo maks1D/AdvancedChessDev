@@ -28,4 +28,5 @@ int main()
 	}
 
 	Server_Start(&server, Configuration_Read(&configuration, "SERVER_PORT"), Configuration_Read(&configuration, "SERVER_INTERNET_PROTOCOL_VERSION"));
+	return 0;
 }
