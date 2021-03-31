@@ -12,7 +12,7 @@ static char* Server_GetTime()
 	return output;
 }
 
-void Server_Start(Server* server, const char* port, const char* internetProtocolVersion, int mainLoopDelay)
+void Server_Start(Server* server, const char* port, const char* internetProtocolVersion)
 {
 	int connectionsCount = 0;
 	int* connectionsIndexes = malloc(SERVER_MAX_CONNECTIONS * sizeof(int));
@@ -123,13 +123,13 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 #ifndef WIN32
 	static struct timespec delay;
 	delay.tv_sec = 0;
-	delay.tv_nsec = mainLoopDelay * 1000000;
+	delay.tv_nsec = 1000000;
 #endif
 
 	while (1)
 	{
 #ifdef WIN32
-		Sleep(mainLoopDelay);
+		Sleep(1);
 #else
 		nanosleep(&delay, NULL);
 #endif
@@ -360,26 +360,26 @@ void Server_SetStaticFilesMaxSize(Server* server, int size)
 	server->staticFiles = malloc(sizeof(Server_StaticFile) * size);
 }
 
-void Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType)
+char Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType)
 {
 #ifdef WIN32
-	HANDLE file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE handle = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-	if (file == INVALID_HANDLE_VALUE)
+	if (handle == INVALID_HANDLE_VALUE)
 	{
 		printf("Failed to add a static file (%s)!\n", path);
-		return;
+		return 0;
 	}
 
 	LARGE_INTEGER size;
-	GetFileSizeEx(file, &size);
+	GetFileSizeEx(handle, &size);
 
 	server->staticFiles[server->staticFilesCount].buffer = malloc(size.QuadPart);
 	
-	if (!ReadFile(file, server->staticFiles[server->staticFilesCount].buffer, size.QuadPart, NULL, NULL))
+	if (!ReadFile(handle, server->staticFiles[server->staticFilesCount].buffer, size.QuadPart, NULL, NULL))
 	{
 		printf("Failed read a static file (%s)!\n", path);
-		return;
+		return 0;
 	}
 
 	server->staticFiles[server->staticFilesCount].path = path;
@@ -388,15 +388,14 @@ void Server_AddStaticFile(Server* server, const char* path, const char* url, con
 	server->staticFiles[server->staticFilesCount].bufferLength = size.QuadPart;
 	server->staticFilesCount++;
 
-	CloseHandle(file);
+	CloseHandle(handle);
 #else
 	int handle = open(path, O_RDONLY);
 
 	if(handle == -1)
 	{
 		printf("Failed to add a static file (%s)!\n", path);
-
-		return;
+		return 0;
 	}
 
 	struct stat data;
@@ -407,7 +406,7 @@ void Server_AddStaticFile(Server* server, const char* path, const char* url, con
 	if (read(handle, server->staticFiles[server->staticFilesCount].buffer, data.st_size) == -1)
 	{
 		printf("Failed read a static file (%s)!\n", path);
-		return;
+		return 0;
 	}
 
 	server->staticFiles[server->staticFilesCount].path = path;
@@ -418,4 +417,6 @@ void Server_AddStaticFile(Server* server, const char* path, const char* url, con
 
 	close(handle);
 #endif
+
+	return 1;
 }

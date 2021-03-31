@@ -21,6 +21,9 @@
     <ClCompile Include="src\captcha.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\configuration.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\server.h">
@@ -33,6 +36,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\captcha.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\configuration.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

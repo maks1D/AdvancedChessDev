@@ -58,6 +58,6 @@ typedef struct
 } Server;
 
 static char* Server_GetTime();
-void Server_Start(Server* server, const char* port, const char* internetProtocolVersion, int mainLoopDelay);
+void Server_Start(Server* server, const char* port, const char* internetProtocolVersion);
 void Server_SetStaticFilesMaxSize(Server* server, int size);
-void Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType);
+char Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType);

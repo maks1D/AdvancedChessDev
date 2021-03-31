@@ -86,6 +86,7 @@
   <ItemGroup>
     <ClCompile Include="src\captcha.c" />
     <ClCompile Include="src\chess.c" />
+    <ClCompile Include="src\configuration.c" />
     <ClCompile Include="src\database.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\server.c" />
@@ -93,6 +94,7 @@
   <ItemGroup>
     <ClInclude Include="src\captcha.h" />
     <ClInclude Include="src\chess.h" />
+    <ClInclude Include="src\configuration.h" />
     <ClInclude Include="src\database.h" />
     <ClInclude Include="src\server.h" />
   </ItemGroup>
