@@ -121,9 +121,9 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	int responseLength;
 
 #ifndef WIN32
-	static struct timespec time;
-	time.tv_sec = 0;
-	time.tv_nsec = mainLoopDelay * 1000000;
+	static struct timespec delay;
+	delay.tv_sec = 0;
+	delay.tv_nsec = mainLoopDelay * 1000000;
 #endif
 
 	while (1)
@@ -131,7 +131,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 #ifdef WIN32
 		Sleep(mainLoopDelay);
 #else
-		nanosleep(&time, NULL);
+		nanosleep(&delay, NULL);
 #endif
 
 		static int index;
