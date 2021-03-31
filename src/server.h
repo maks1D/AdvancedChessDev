@@ -13,16 +13,34 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #endif
 
 #include <stdio.h>
 #include <time.h>
 
 #define SERVER_BUFFER_LENGTH 1024
+#define SERVER_MAX_CONNECTIONS 64
+#define SERVER_CONNECTION_TIMEOUT_IN_SECONDS 10
 
+#if WIN32
+#define SERVER_INVALID_SOCKET INVALID_SOCKET
+
+typedef SOCKET Server_Socket;
+#else
+#define SERVER_INVALID_SOCKET -1
+
+typedef int Server_Socket;
+#endif
+
+typedef struct
+{
+	unsigned char type;
+	time_t lastPacket;
+	Server_Socket socket;
+} Server_Connection;
 
 typedef struct
 {
@@ -35,24 +53,11 @@ typedef struct
 
 typedef struct
 {
-	int socket;
 	int staticFilesCount;
 	Server_StaticFile* staticFiles;
 } Server;
 
-typedef struct
-{
-	int socket;
-	Server* server;
-} Server_ConnectionThreadArgument;
-
-void Server_PrintError(const char* message);
-void Server_PrintMessage(const char* message);
-char* Server_GetTime();
+static char* Server_GetTime();
+void Server_Start(Server* server, const char* port, const char* internetProtocolVersion, int mainLoopDelay);
 void Server_SetStaticFilesMaxSize(Server* server, int size);
 void Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType);
-void Server_Start(Server* server, const char* port);
-void Server_ConnectionThread(Server_ConnectionThreadArgument* connectionThreadArgument);
-int Server_GenerateResponse(int responseCode, const char* responseStatus, char* output);
-int Server_GenerateResponseWithHeader(int responseCode, const char* responseStatus, const char* header, char* output);
-int Server_GenerateResponseWithBody(int responseCode, const char* responseStatus, int bufferLength, const char* contentType, char* output);

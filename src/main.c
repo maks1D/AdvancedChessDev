@@ -11,5 +11,5 @@ int main()
 	Server_AddStaticFile(&server, "static/style.css", "/style.css", "text/css");
 	Server_AddStaticFile(&server, "static/script.js", "/script.js", "text/javascript");
 	Server_AddStaticFile(&server, "static/favicon.ico", "/favicon.ico", "image/vnd.microsoft.icon");
-	Server_Start(&server, "80");
+	Server_Start(&server, "80", "4", 5);
 }
