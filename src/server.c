@@ -7,6 +7,12 @@ static char* Server_GetTime()
 
 	static char* output;
 	output = asctime(gmtime(&rawTime));
+
+	if (output == NULL)
+	{
+		return "";
+	}
+
 	output[strlen(output) - 1] = '\x00';
 
 	return output;
@@ -18,6 +24,12 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	int* connectionsIndexes = malloc(SERVER_MAX_CONNECTIONS * sizeof(int));
 
 	Server_Connection* connections = malloc(SERVER_MAX_CONNECTIONS * sizeof(Server_Connection));
+
+	if (connectionsIndexes == NULL || connections == NULL)
+	{
+		printf("Failed to allocate memory!\n");
+		return;
+	}
 
 	for (int index = 0; index < SERVER_MAX_CONNECTIONS; index++)
 	{
@@ -75,7 +87,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 	int reuseAddress = 1;
 
-	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuseAddress, sizeof(reuseAddress)) == -1)
+	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&reuseAddress, sizeof(reuseAddress)) == -1)
 	{
 		printf("Failed set socket options!\n");
 		return;
@@ -374,9 +386,9 @@ char Server_AddStaticFile(Server* server, const char* path, const char* url, con
 	LARGE_INTEGER size;
 	GetFileSizeEx(handle, &size);
 
-	server->staticFiles[server->staticFilesCount].buffer = malloc(size.QuadPart);
+	server->staticFiles[server->staticFilesCount].buffer = malloc((size_t)size.QuadPart);
 	
-	if (!ReadFile(handle, server->staticFiles[server->staticFilesCount].buffer, size.QuadPart, NULL, NULL))
+	if (!ReadFile(handle, server->staticFiles[server->staticFilesCount].buffer, (DWORD)size.QuadPart, NULL, NULL))
 	{
 		printf("Failed read a static file (%s)!\n", path);
 		return 0;
@@ -385,7 +397,7 @@ char Server_AddStaticFile(Server* server, const char* path, const char* url, con
 	server->staticFiles[server->staticFilesCount].path = path;
 	server->staticFiles[server->staticFilesCount].url = url;
 	server->staticFiles[server->staticFilesCount].contentType = contentType;
-	server->staticFiles[server->staticFilesCount].bufferLength = size.QuadPart;
+	server->staticFiles[server->staticFilesCount].bufferLength = (int)size.QuadPart;
 	server->staticFilesCount++;
 
 	CloseHandle(handle);

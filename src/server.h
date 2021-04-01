@@ -1,8 +1,6 @@
 #ifdef WIN32
 #define _CRT_SECURE_NO_WARNINGS
 
-#pragma warning(disable : 4244 6001 6011 6031 6387 28182 28183)
-
 #include <ws2tcpip.h>
 #include <WinSock2.h>
 
