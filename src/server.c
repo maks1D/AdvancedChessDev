@@ -132,20 +132,8 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 	char* buffer = malloc(SERVER_BUFFER_LENGTH);
 
-#ifndef WIN32
-	static struct timespec delay;
-	delay.tv_sec = 0;
-	delay.tv_nsec = 1000000;
-#endif
-
 	while (1)
 	{
-#ifdef WIN32
-		Sleep(1);
-#else
-		nanosleep(&delay, NULL);
-#endif
-
 		static int index;
 
 		for (index = 0; index < SERVER_MAX_CONNECTIONS; index++)
