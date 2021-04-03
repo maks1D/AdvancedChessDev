@@ -9,6 +9,8 @@ AdvancedChess is an open-source cross-platform dependency-free chess server writ
 - [ ] Join messages
 - [ ] Online members list
 - [ ] Sending messages
+- [ ] Seeing who is typing
+- [ ] Unread messages
 - [ ] Deleting messages
 - [ ] Editing messages
 - [ ] Adding reactions
@@ -40,8 +42,6 @@ Open `AdvancedChess.sln` in Visual Studio 2019, select `Release` configuration a
 chmod +x build.sh
 ./build.sh
 ```
-
-**Warning!** Server on linux has to be running with root permissions!
 
 ## Adding configuration file
 
