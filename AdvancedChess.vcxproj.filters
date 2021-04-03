@@ -24,6 +24,15 @@
     <ClCompile Include="src\configuration.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\endianness.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hasher.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\base64.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\server.h">
@@ -39,6 +48,15 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\configuration.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\endianness.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hasher.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\base64.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

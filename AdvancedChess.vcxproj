@@ -94,18 +94,24 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\base64.c" />
     <ClCompile Include="src\captcha.c" />
     <ClCompile Include="src\chess.c" />
     <ClCompile Include="src\configuration.c" />
     <ClCompile Include="src\database.c" />
+    <ClCompile Include="src\endianness.c" />
+    <ClCompile Include="src\hasher.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\server.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\base64.h" />
     <ClInclude Include="src\captcha.h" />
     <ClInclude Include="src\chess.h" />
     <ClInclude Include="src\configuration.h" />
     <ClInclude Include="src\database.h" />
+    <ClInclude Include="src\endianness.h" />
+    <ClInclude Include="src\hasher.h" />
     <ClInclude Include="src\server.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

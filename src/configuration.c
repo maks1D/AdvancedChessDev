@@ -53,7 +53,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 #endif
 
 	int begin;
-	int mode = CONFIGURATION_MODE_INDEX_BEGIN;
+	int mode = CONFIGURATION_PARSING_MODE_INDEX_BEGIN;
 
 	configuration->entries = 0;
 
@@ -61,16 +61,16 @@ char Configuration_Load(Configuration* configuration, const char* path)
 	{
 		switch (mode)
 		{
-			case CONFIGURATION_MODE_INDEX_BEGIN:
+			case CONFIGURATION_PARSING_MODE_INDEX_BEGIN:
 			{
 				if (('A' <= buffer[index] && buffer[index] <= 'Z') || ('0' <= buffer[index] && buffer[index] <= '9') || buffer[index] == '_')
 				{
 					begin = index;
-					mode = CONFIGURATION_MODE_INDEX;
+					mode = CONFIGURATION_PARSING_MODE_INDEX;
 				}
 				else if (buffer[index] == '#')
 				{
-					mode = CONFIGURATION_MODE_COMMENT;
+					mode = CONFIGURATION_PARSING_MODE_COMMENT;
 				}
 				else if(buffer[index] != ' ' && buffer[index] != '\r' && buffer[index] != '\n')
 				{
@@ -81,7 +81,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 				break;
 			}
 
-			case CONFIGURATION_MODE_INDEX:
+			case CONFIGURATION_PARSING_MODE_INDEX:
 			{
 				if (buffer[index] == '=')
 				{
@@ -91,7 +91,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 					sprintf(configuration->properties[configuration->entries], "%s", buffer + begin);
 
 					begin = index + 1;
-					mode = CONFIGURATION_MODE_VALUE_BEGIN;
+					mode = CONFIGURATION_PARSING_MODE_VALUE_BEGIN;
 				}
 				else if(!(('A' <= buffer[index] && buffer[index] <= 'Z') || ('0' <= buffer[index] && buffer[index] <= '9') || buffer[index] == '_'))
 				{
@@ -102,7 +102,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 				break;
 			}
 
-			case CONFIGURATION_MODE_VALUE_BEGIN:
+			case CONFIGURATION_PARSING_MODE_VALUE_BEGIN:
 			{
 				if (!(('A' <= buffer[index] && buffer[index] <= 'Z') || ('0' <= buffer[index] && buffer[index] <= '9') || buffer[index] == '_'))
 				{
@@ -111,12 +111,12 @@ char Configuration_Load(Configuration* configuration, const char* path)
 				}
 
 
-				mode = CONFIGURATION_MODE_VALUE;
+				mode = CONFIGURATION_PARSING_MODE_VALUE;
 
 				break;
 			}
 
-			case CONFIGURATION_MODE_VALUE:
+			case CONFIGURATION_PARSING_MODE_VALUE:
 			{
 				if (buffer[index] == ' ' || buffer[index] == '\r' || buffer[index] == '\n')
 				{
@@ -127,7 +127,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 
 					configuration->entries++;
 
-					mode = CONFIGURATION_MODE_INDEX_BEGIN;
+					mode = CONFIGURATION_PARSING_MODE_INDEX_BEGIN;
 				}
 				else if (buffer[index] == '#')
 				{
@@ -138,7 +138,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 
 					configuration->entries++;
 
-					mode = CONFIGURATION_MODE_COMMENT;
+					mode = CONFIGURATION_PARSING_MODE_COMMENT;
 				}
 				else if (!(('A' <= buffer[index] && buffer[index] <= 'Z') || ('0' <= buffer[index] && buffer[index] <= '9') || buffer[index] == '_'))
 				{
@@ -149,11 +149,11 @@ char Configuration_Load(Configuration* configuration, const char* path)
 				break;
 			}
 
-			case CONFIGURATION_MODE_COMMENT:
+			case CONFIGURATION_PARSING_MODE_COMMENT:
 			{
 				if (buffer[index] == '\n')
 				{
-					mode = CONFIGURATION_MODE_INDEX_BEGIN;
+					mode = CONFIGURATION_PARSING_MODE_INDEX_BEGIN;
 				}
 
 				break;
@@ -161,17 +161,17 @@ char Configuration_Load(Configuration* configuration, const char* path)
 		}
 	}
 
-	if (mode == CONFIGURATION_MODE_VALUE)
+	if (mode == CONFIGURATION_PARSING_MODE_VALUE)
 	{
 		configuration->values[configuration->entries] = malloc(length - begin + 1);
 		sprintf(configuration->values[configuration->entries], "%s", buffer + begin);
 
 		configuration->entries++;
 
-		mode = CONFIGURATION_MODE_INDEX_BEGIN;
+		mode = CONFIGURATION_PARSING_MODE_INDEX_BEGIN;
 	}
 
-	if (mode == CONFIGURATION_MODE_INDEX || mode == CONFIGURATION_MODE_VALUE_BEGIN)
+	if (mode == CONFIGURATION_PARSING_MODE_INDEX || mode == CONFIGURATION_PARSING_MODE_VALUE_BEGIN)
 	{
 		printf("An error occurred while parsing the configuraiton file!\n");
 		return 0;
