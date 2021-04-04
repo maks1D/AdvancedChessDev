@@ -1,6 +1,6 @@
 #include "filesystem.h"
 
-int Filesystem_ReadFile(const char* path, unsigned char** buffer, char allocateMemory)
+int Filesystem_ReadFile(const char* path, char** buffer, char allocateMemory)
 {
 #ifdef WIN32
 	static HANDLE handle;
@@ -48,7 +48,7 @@ int Filesystem_ReadFile(const char* path, unsigned char** buffer, char allocateM
 
 	if (*buffer == NULL || read(handle, *buffer, data.st_size) == -1)
 	{
-		printf("Failed read the configuration file!\n");
+		close(handle);
 		return -1;
 	}
 

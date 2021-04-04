@@ -5,7 +5,7 @@ unsigned int Hasher_LeftRotate(unsigned int number, int bits)
 	return (number << bits) | (number >> (32 - bits));
 }
 
-char* Hasher_Hash(unsigned char* message, int messageLength)
+char* Hasher_Hash(char* message, int messageLength)
 {
 	unsigned long long originalMessageLength = Endianness_LongLongToBigEndian((unsigned long long)messageLength * 8);
 

@@ -2,7 +2,7 @@
 
 char Configuration_Load(Configuration* configuration, const char* path)
 {
-	static unsigned char* buffer;
+	static char* buffer;
 
 	static int length;
 	length = Filesystem_ReadFile(path, &buffer, 1);

@@ -11,4 +11,4 @@
 #include <fcntl.h>
 #endif
 
-int Filesystem_ReadFile(const char* path, unsigned char** buffer, char allocateMemory);
+int Filesystem_ReadFile(const char* path, char** buffer, char allocateMemory);
