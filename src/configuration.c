@@ -2,62 +2,27 @@
 
 char Configuration_Load(Configuration* configuration, const char* path)
 {
-#ifdef WIN32
-	HANDLE handle = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	static unsigned char* buffer;
 
-	if (handle == INVALID_HANDLE_VALUE)
+	static int length;
+	length = Filesystem_ReadFile(path, &buffer, 1);
+
+	if (length == -1)
 	{
 		printf("Failed to open the configuration file!\n");
 		return 0;
 	}
 
-	LARGE_INTEGER size;
-	GetFileSizeEx(handle, &size);
+	static int begin;
 
-	int length = (int)size.QuadPart;
-	char* buffer = malloc(length + 1);
-
-	if (buffer == NULL || !ReadFile(handle, buffer, length, NULL, NULL))
-	{
-		printf("Failed read the configuration file!\n");
-		return 0;
-	}
-
-	buffer[length] = '\x00';
-
-	CloseHandle(handle);
-#else
-	int handle = open(path, O_RDONLY);
-
-	if (handle == -1)
-	{
-		printf("Failed to open the configuration file!\n");
-		return 0;
-	}
-
-	struct stat data;
-	fstat(handle, &data);
-
-	int length = data.st_size;
-	char* buffer = malloc(length + 1);
-
-	if (buffer == NULL || read(handle, buffer, length) == -1)
-	{
-		printf("Failed read the configuration file!\n");
-		return 0;
-	}
-
-	buffer[length] = '\x00';
-
-	close(handle);
-#endif
-
-	int begin;
-	int mode = CONFIGURATION_PARSING_MODE_INDEX_BEGIN;
+	static int mode;
+	mode = CONFIGURATION_PARSING_MODE_INDEX_BEGIN;
 
 	configuration->entries = 0;
 
-	for (int index = 0; index < length; index++)
+	static int index;
+
+	for (index = 0; index < length; index++)
 	{
 		switch (mode)
 		{
@@ -88,6 +53,13 @@ char Configuration_Load(Configuration* configuration, const char* path)
 					buffer[index] = '\x00';
 
 					configuration->properties[configuration->entries] = malloc(index - begin + 1);
+
+					if (configuration->properties[configuration->entries] == 0)
+					{
+						printf("Failed to open the configuration file!\n");
+						return 0;
+					}
+
 					sprintf(configuration->properties[configuration->entries], "%s", buffer + begin);
 
 					begin = index + 1;
@@ -112,7 +84,6 @@ char Configuration_Load(Configuration* configuration, const char* path)
 
 
 				mode = CONFIGURATION_PARSING_MODE_VALUE;
-
 				break;
 			}
 
@@ -183,7 +154,9 @@ char Configuration_Load(Configuration* configuration, const char* path)
 
 char* Configuration_Read(Configuration* configuration, const char* property)
 {
-	for (int index = 0; index < configuration->entries; index++)
+	static int index;
+
+	for (index = 0; index < configuration->entries; index++)
 	{
 		if (strcmp(property, configuration->properties[index]) == 0)
 		{

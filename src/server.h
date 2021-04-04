@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "filesystem.h"
 #include "hasher.h"
 
 #define SERVER_BUFFER_LENGTH 10240

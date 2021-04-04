@@ -441,61 +441,20 @@ void Server_SetStaticFilesMaxSize(Server* server, int size)
 
 char Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType)
 {
-#ifdef WIN32
-	HANDLE handle = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	static int length;
+	length = Filesystem_ReadFile(path, &server->staticFiles[server->staticFilesCount].buffer, 1);
 
-	if (handle == INVALID_HANDLE_VALUE)
+	if (length == -1)
 	{
 		printf("Failed to add a static file (%s)!\n", path);
-		return 0;
-	}
-
-	LARGE_INTEGER size;
-	GetFileSizeEx(handle, &size);
-
-	server->staticFiles[server->staticFilesCount].buffer = malloc((size_t)size.QuadPart);
-	
-	if (!ReadFile(handle, server->staticFiles[server->staticFilesCount].buffer, (DWORD)size.QuadPart, NULL, NULL))
-	{
-		printf("Failed read a static file (%s)!\n", path);
 		return 0;
 	}
 
 	server->staticFiles[server->staticFilesCount].path = path;
 	server->staticFiles[server->staticFilesCount].url = url;
 	server->staticFiles[server->staticFilesCount].contentType = contentType;
-	server->staticFiles[server->staticFilesCount].bufferLength = (int)size.QuadPart;
+	server->staticFiles[server->staticFilesCount].bufferLength = length;
 	server->staticFilesCount++;
-
-	CloseHandle(handle);
-#else
-	int handle = open(path, O_RDONLY);
-
-	if(handle == -1)
-	{
-		printf("Failed to add a static file (%s)!\n", path);
-		return 0;
-	}
-
-	struct stat data;
-	fstat(handle, &data);
-
-	server->staticFiles[server->staticFilesCount].buffer = malloc(data.st_size);
-	
-	if (read(handle, server->staticFiles[server->staticFilesCount].buffer, data.st_size) == -1)
-	{
-		printf("Failed read a static file (%s)!\n", path);
-		return 0;
-	}
-
-	server->staticFiles[server->staticFilesCount].path = path;
-	server->staticFiles[server->staticFilesCount].url = url;
-	server->staticFiles[server->staticFilesCount].contentType = contentType;
-	server->staticFiles[server->staticFilesCount].bufferLength = data.st_size;
-	server->staticFilesCount++;
-
-	close(handle);
-#endif
 
 	return 1;
 }

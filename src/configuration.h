@@ -1,19 +1,12 @@
 #ifdef WIN32
 #define _CRT_SECURE_NO_WARNINGS
-
-#include <Windows.h>
-#else
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
 #endif
+
+#include "filesystem.h"
 
 #include <stdio.h>
 
-#define CONFIGURATION_ENTRIES_LIMIT 8
+#define CONFIGURATION_ENTRIES_LIMIT 2
 #define CONFIGURATION_PARSING_MODE_INDEX_BEGIN 0
 #define CONFIGURATION_PARSING_MODE_INDEX 1
 #define CONFIGURATION_PARSING_MODE_VALUE_BEGIN 2

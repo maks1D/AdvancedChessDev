@@ -1,6 +1,6 @@
 # AdvancedChess
 
-AdvancedChess is an open-source cross-platform dependency-free chess server written in C.
+AdvancedChess is an open-source cross-platform dependency-free chess server written in C99.
 
 ## This project is still in development state. Working features:
 
