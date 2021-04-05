@@ -354,7 +354,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 					sprintf(websocketKeyUnhashed, "%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", websocketKeyHeader);
 
-					bufferLength = sprintf(buffer, "HTTP/1.1 101 Switching Protocols\r\nDate: %s\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Accept: %s\r\n\r\n", Server_GetTime(), Hasher_Hash(websocketKeyUnhashed, strlen(websocketKeyUnhashed)));
+					bufferLength = sprintf(buffer, "HTTP/1.1 101 Switching Protocols\r\nDate: %s\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Accept: %s\r\n\r\n", Server_GetTime(), Crypto_Hash(websocketKeyUnhashed, strlen(websocketKeyUnhashed)));
 					send(connections[index].socket, buffer, bufferLength, 0);
 
 					connections[index].type = SERVER_CONNECTION_TYPE_WEBSOCKET;

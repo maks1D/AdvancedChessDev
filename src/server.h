@@ -20,7 +20,7 @@
 #include <time.h>
 
 #include "filesystem.h"
-#include "hasher.h"
+#include "crypto.h"
 
 #define SERVER_BUFFER_LENGTH 10240
 #define SERVER_MAX_HEADERS 64

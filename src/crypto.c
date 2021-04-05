@@ -1,13 +1,33 @@
-#include "hasher.h"
+#include "crypto.h"
 
-unsigned int Hasher_LeftRotate(unsigned int number, int bits)
+char Crypto_ToBase64(int number)
 {
-	return (number << bits) | (number >> (32 - bits));
+	if (number <= 25)
+	{
+		return 'A' + number;
+	}
+
+	if (number <= 51)
+	{
+		return 'a' + number - 26;
+	}
+
+	if (number <= 61)
+	{
+		return '0' + number - 52;
+	}
+
+	if (number == 62)
+	{
+		return '+';
+	}
+
+	return '/';
 }
 
-char* Hasher_Hash(char* message, int messageLength)
+char* Crypto_Hash(unsigned char* message, int messageLength)
 {
-	unsigned long long originalMessageLength = Endianness_LongLongToBigEndian((unsigned long long)messageLength * 8);
+	unsigned long long originalMessageLength = (unsigned long long)messageLength * 8;
 
 	message[messageLength] = (unsigned char)0x80;
 	messageLength++;
@@ -17,12 +37,12 @@ char* Hasher_Hash(char* message, int messageLength)
 		message[messageLength] = (unsigned char)0;
 		messageLength++;
 	}
-	
+
 	static int index;
 
 	for (index = 0; index < 8; index++)
 	{
-		message[messageLength + index] = ((unsigned char*)&originalMessageLength)[index];
+		message[messageLength + index] = (unsigned char)((originalMessageLength >> ((7 - index) * 8)) & 0xff);
 	}
 
 	messageLength = (messageLength + 8) / 64;
@@ -51,7 +71,8 @@ char* Hasher_Hash(char* message, int messageLength)
 
 		for (index = 16; index < 80; index++)
 		{
-			words[index] = Hasher_LeftRotate(words[index - 3] ^ words[index - 8] ^ words[index - 14] ^ words[index - 16], 1);
+			words[index] = words[index - 3] ^ words[index - 8] ^ words[index - 14] ^ words[index - 16];
+			words[index] = (words[index] << 1) | (words[index] >> 31);
 		}
 
 		static unsigned int numbers[6];
@@ -95,13 +116,13 @@ char* Hasher_Hash(char* message, int messageLength)
 			{
 				value = 0xCA62C1D6U;
 			}
-			
+
 			static int number;
-			number = Hasher_LeftRotate(numbers[0], 5) + numbers[5] + numbers[4] + value + words[index];
+			number = ((numbers[0] << 5) | (numbers[0] >> 27)) + numbers[5] + numbers[4] + value + words[index];
 
 			numbers[4] = numbers[3];
 			numbers[3] = numbers[2];
-			numbers[2] = Hasher_LeftRotate(numbers[1], 30);
+			numbers[2] = (numbers[1] << 30) | (numbers[1] >> 2);
 			numbers[1] = numbers[0];
 			numbers[0] = number;
 		}
@@ -112,20 +133,33 @@ char* Hasher_Hash(char* message, int messageLength)
 		}
 	}
 
-	for (index = 0; index < 5; index++)
-	{
-		results[index] = Endianness_IntToBigEndian(results[index]);
-	}
-
 	static unsigned char output[20];
 
-	for (index = 0; index < 20; index++)
+	for (index = 0; index < 5; index++)
 	{
-		output[index] = ((unsigned char*)&results)[index];
+		static int byte;
+
+		for (byte = 0; byte < 4; byte++)
+		{
+			output[4 * index + byte] = (results[index] >> ((3 - byte) * 8)) & 0xff;
+		}
 	}
 
 	static char encoded[29];
-	Base64_StringToBase64(output, 20, encoded);
+
+	for (index = 0; index < 6; index++)
+	{
+		encoded[index * 4] = Crypto_ToBase64(output[index * 3] >> 2);
+		encoded[index * 4 + 1] = Crypto_ToBase64(((output[index * 3] & 0b11) << 4) | (output[index * 3 + 1] >> 4));
+		encoded[index * 4 + 2] = Crypto_ToBase64(((output[index * 3 + 1] & 0b1111) << 2) | (output[index * 3 + 2] >> 6));
+		encoded[index * 4 + 3] = Crypto_ToBase64(output[index * 3 + 2] & 0b111111);
+	}
+
+	encoded[24] = Crypto_ToBase64(output[index * 3] >> 2);
+	encoded[25] = Crypto_ToBase64(((output[index * 3] & 0b11) << 4) | (output[index * 3 + 1] >> 4));
+	encoded[26] = Crypto_ToBase64((output[index * 3 + 1] & 0b1111) << 2);
+	encoded[27] = '=';
+	encoded[28] = '\x00';
 
 	return encoded;
 }

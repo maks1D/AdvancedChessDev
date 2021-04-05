@@ -58,6 +58,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -79,6 +80,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -94,26 +96,22 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\base64.c" />
     <ClCompile Include="src\captcha.c" />
     <ClCompile Include="src\chess.c" />
     <ClCompile Include="src\configuration.c" />
     <ClCompile Include="src\database.c" />
-    <ClCompile Include="src\endianness.c" />
     <ClCompile Include="src\filesystem.c" />
-    <ClCompile Include="src\hasher.c" />
+    <ClCompile Include="src\crypto.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\server.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\base64.h" />
     <ClInclude Include="src\captcha.h" />
     <ClInclude Include="src\chess.h" />
     <ClInclude Include="src\configuration.h" />
     <ClInclude Include="src\database.h" />
-    <ClInclude Include="src\endianness.h" />
     <ClInclude Include="src\filesystem.h" />
-    <ClInclude Include="src\hasher.h" />
+    <ClInclude Include="src\crypto.h" />
     <ClInclude Include="src\server.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
