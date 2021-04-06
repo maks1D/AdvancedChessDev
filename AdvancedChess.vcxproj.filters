@@ -27,9 +27,6 @@
     <ClCompile Include="src\crypto.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\filesystem.c">
-      <Filter>src</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\server.h">
@@ -50,7 +47,7 @@
     <ClInclude Include="src\crypto.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\filesystem.h">
+    <ClInclude Include="src\error.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

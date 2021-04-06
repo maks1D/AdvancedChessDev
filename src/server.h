@@ -11,20 +11,18 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
 #include <errno.h>
 #endif
 
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <time.h>
 
-#include "filesystem.h"
 #include "crypto.h"
+#include "error.h"
 
 #define SERVER_BUFFER_LENGTH 10240
-#define SERVER_MAX_HEADERS 64
-#define SERVER_MAX_CONNECTIONS 1024
 #define SERVER_CONNECTION_TIMEOUT_IN_SECONDS 10
 #define SERVER_CONNECTION_TYPE_UNCONNECTED 0
 #define SERVER_CONNECTION_TYPE_HTTP 1
@@ -62,9 +60,14 @@ typedef struct
 {
 	int staticFilesCount;
 	Server_StaticFile* staticFiles;
+	int maxConnections;
+	int connectionsCount;
+	int* connectionsIndexes;
+	Server_Connection* connections;
 } Server;
 
-static char* Server_GetTime();
+char* Server_GetTime();
+void Server_CloseConnection(Server* server, int socketIndex);
 void Server_Start(Server* server, const char* port, const char* internetProtocolVersion);
 void Server_SetStaticFilesMaxSize(Server* server, int size);
-char Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType);
+int Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType);

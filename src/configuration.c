@@ -1,28 +1,57 @@
 #include "configuration.h"
 
-char Configuration_Load(Configuration* configuration, const char* path)
+int Configuration_Load(Configuration* configuration, const char* path)
 {
-	static char* buffer;
+	FILE* file = fopen(path, "rb");
 
-	static int length;
-	length = Filesystem_ReadFile(path, &buffer, 1);
-
-	if (length == -1)
+	if (file == NULL)
 	{
-		printf("Failed to open the configuration file!\n");
+		ERROR("Failed to open the configuration file!");
 		return 0;
 	}
 
-	static int begin;
-
-	static int mode;
-	mode = CONFIGURATION_PARSING_MODE_INDEX_BEGIN;
-
 	configuration->entries = 0;
+	configuration->maxEntries = 1;
+	configuration->properties = malloc(sizeof(char*));
+	configuration->values = malloc(sizeof(char*));
 
-	static int index;
+	if (configuration->properties == NULL || configuration->values == NULL)
+	{
+		ERROR("Failed to allocate memory!");
+		return 0;
+	}
 
-	for (index = 0; index < length; index++)
+	fseek(file, 0L, SEEK_END);
+	int length = ftell(file);
+
+	if (length == -1)
+	{
+		ERROR("Failed to read the configuration file!");
+		return 0;
+	}
+
+	rewind(file);
+
+	char* buffer = malloc(length + 1);
+
+	if (buffer == NULL)
+	{
+		ERROR("Failed to allocate memory!");
+		return 0;
+	}
+
+	if (fread(buffer, sizeof(char), length, file) != length)
+	{
+		ERROR("Failed to read the configuration file!");
+		return 0;
+	}
+
+	fclose(file);
+
+	int begin;
+	int mode = CONFIGURATION_PARSING_MODE_INDEX_BEGIN;
+
+	for(int index = 0; index < length; index++)
 	{
 		switch (mode)
 		{
@@ -39,7 +68,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 				}
 				else if(buffer[index] != ' ' && buffer[index] != '\r' && buffer[index] != '\n')
 				{
-					printf("An error occurred while parsing the configuraiton file!\n");
+					ERROR("The configuration file has invalid data!");
 					return 0;
 				}
 
@@ -52,11 +81,26 @@ char Configuration_Load(Configuration* configuration, const char* path)
 				{
 					buffer[index] = '\x00';
 
+					if (configuration->maxEntries == configuration->entries)
+					{
+						char** newProperties = realloc(configuration->properties, 2 * configuration->entries * sizeof(char*));
+						char** newValues = realloc(configuration->values, 2 * configuration->entries * sizeof(char*));
+
+						if (newProperties == NULL || newValues == NULL)
+						{
+							ERROR("Failed to allocate memory!");
+							return 0;
+						}
+
+						configuration->properties = newProperties;
+						configuration->values = newValues;
+					}
+
 					configuration->properties[configuration->entries] = malloc(index - begin + 1);
 
-					if (configuration->properties[configuration->entries] == 0)
+					if (configuration->properties[configuration->entries] == NULL)
 					{
-						printf("Failed to open the configuration file!\n");
+						ERROR("Failed to open the configuration file!");
 						return 0;
 					}
 
@@ -67,7 +111,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 				}
 				else if(!(('A' <= buffer[index] && buffer[index] <= 'Z') || ('0' <= buffer[index] && buffer[index] <= '9') || buffer[index] == '_'))
 				{
-					printf("An error occurred while parsing the configuraiton file!\n");
+					ERROR("The configuration file has invalid data!");
 					return 0;
 				}
 
@@ -78,7 +122,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 			{
 				if (!(('A' <= buffer[index] && buffer[index] <= 'Z') || ('0' <= buffer[index] && buffer[index] <= '9') || buffer[index] == '_'))
 				{
-					printf("An error occurred while parsing the configuraiton file!\n");
+					ERROR("The configuration file has invalid data!");
 					return 0;
 				}
 
@@ -113,7 +157,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 				}
 				else if (!(('A' <= buffer[index] && buffer[index] <= 'Z') || ('0' <= buffer[index] && buffer[index] <= '9') || buffer[index] == '_'))
 				{
-					printf("An error occurred while parsing the configuraiton file!\n");
+					ERROR("The configuration file has invalid data!");
 					return 0;
 				}
 
@@ -138,13 +182,11 @@ char Configuration_Load(Configuration* configuration, const char* path)
 		sprintf(configuration->values[configuration->entries], "%s", buffer + begin);
 
 		configuration->entries++;
-
-		mode = CONFIGURATION_PARSING_MODE_INDEX_BEGIN;
 	}
 
 	if (mode == CONFIGURATION_PARSING_MODE_INDEX || mode == CONFIGURATION_PARSING_MODE_VALUE_BEGIN)
 	{
-		printf("An error occurred while parsing the configuraiton file!\n");
+		ERROR("The configuration file has invalid data!");
 		return 0;
 	}
 
@@ -154,9 +196,7 @@ char Configuration_Load(Configuration* configuration, const char* path)
 
 char* Configuration_Read(Configuration* configuration, const char* property)
 {
-	static int index;
-
-	for (index = 0; index < configuration->entries; index++)
+	for (int index = 0; index < configuration->entries; index++)
 	{
 		if (strcmp(property, configuration->properties[index]) == 0)
 		{

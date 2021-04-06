@@ -1,8 +1,9 @@
-#include "database.h"
 #include "captcha.h"
 #include "server.h"
 #include "chess.h"
 #include "configuration.h"
+#include "database.h"
+#include "crypto.h"
 
 int main()
 {
@@ -10,7 +11,6 @@ int main()
 
 	if (!Configuration_Load(&configuration, "settings.txt"))
 	{
-		printf("Aborting.\n");
 		return 1;
 	}
 	
@@ -23,7 +23,6 @@ int main()
 		!Server_AddStaticFile(&server, "static/favicon.ico", "/favicon.ico", "image/vnd.microsoft.icon"))
 	{
 
-		printf("Aborting.\n");
 		return 1;
 	}
 

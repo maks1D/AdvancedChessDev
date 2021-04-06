@@ -2,11 +2,12 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include "filesystem.h"
-
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#define CONFIGURATION_ENTRIES_LIMIT 2
+#include "error.h"
+
 #define CONFIGURATION_PARSING_MODE_INDEX_BEGIN 0
 #define CONFIGURATION_PARSING_MODE_INDEX 1
 #define CONFIGURATION_PARSING_MODE_VALUE_BEGIN 2
@@ -16,9 +17,10 @@
 typedef struct
 {
 	int entries;
-	char* properties[CONFIGURATION_ENTRIES_LIMIT];
-	char* values[CONFIGURATION_ENTRIES_LIMIT];
+	int maxEntries;
+	char** properties;
+	char** values;
 } Configuration;
 
-char Configuration_Load(Configuration* configuration, const char* path);
+int Configuration_Load(Configuration* configuration, const char* path);
 char* Configuration_Read(Configuration* configuration, const char* property);

@@ -163,3 +163,31 @@ char* Crypto_Hash(unsigned char* message, int messageLength)
 
 	return encoded;
 }
+
+char* Crypto_GenerateRandomBytes()
+{
+	unsigned char* bytes = malloc(96);
+
+	if (bytes == 0)
+	{
+		return NULL;
+	}
+
+#ifdef WIN32
+	if (FAILED(BCryptGenRandom(NULL, bytes, 32, BCRYPT_USE_SYSTEM_PREFERRED_RNG)))
+	{
+		return NULL;
+	}
+
+#else
+	if (getrandom(bytes, 32, 0) != 32)
+	{
+		return NULL;
+	}
+#endif
+
+	char* result = Crypto_Hash(bytes, 32);
+
+	free(bytes);
+	return result;
+}

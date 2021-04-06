@@ -1,6 +1,6 @@
 #include "server.h"
 
-static char* Server_GetTime()
+char* Server_GetTime()
 {
 	static time_t rawTime;
 	time(&rawTime);
@@ -18,31 +18,40 @@ static char* Server_GetTime()
 	return output;
 }
 
+void Server_CloseConnection(Server* server, int connectionIndex)
+{
+#ifdef WIN32
+	closesocket(server->connections[connectionIndex].socket);
+#else
+	close(connections[index].socket);
+#endif
+	server->connectionsCount--;
+	server->connections[connectionIndex].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
+	server->connectionsIndexes[server->connectionsCount] = connectionIndex;
+}
+
 void Server_Start(Server* server, const char* port, const char* internetProtocolVersion)
 {
-	int connectionsCount = 0;
-	int* connectionsIndexes = malloc(SERVER_MAX_CONNECTIONS * sizeof(int));
+	server->connectionsCount = 0;
+	server->maxConnections = 1;
+	server->connectionsIndexes = malloc(sizeof(int));
+	server->connections = malloc(sizeof(Server_Connection));
 
-	Server_Connection* connections = malloc(SERVER_MAX_CONNECTIONS * sizeof(Server_Connection));
-
-	if (connectionsIndexes == NULL || connections == NULL)
+	if (server->connectionsIndexes == NULL || server->connections == NULL)
 	{
-		printf("Failed to allocate memory!\n");
+		ERROR("Failed to allocate memory!");
 		return;
 	}
 
-	for (int index = 0; index < SERVER_MAX_CONNECTIONS; index++)
-	{
-		connectionsIndexes[index] = index;
-		connections[index].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-	}
+	server->connectionsIndexes[0] = 0;
+	server->connections[0].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
 	
 #ifdef WIN32
 	WSADATA windowsSocketsData;
 
 	if (WSAStartup(MAKEWORD(2, 2), &windowsSocketsData) != 0)
 	{
-		printf("Failed to initialize Windows Sockets!\n");
+		ERROR("Failed to initialize Windows Sockets!");
 		return;
 	}
 #endif
@@ -63,7 +72,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	}
 	else
 	{
-		printf("Invalid internet protocol version!\n");
+		ERROR("Invalid Internet Protocol version!");
 		return;
 	}
 
@@ -73,7 +82,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 	if (getaddrinfo(NULL, port, &addressInformation, &result) != 0)
 	{
-		printf("Failed to get address information!\n");
+		ERROR("Failed to get address information!");
 		return;
 	}
 
@@ -81,7 +90,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 	if (serverSocket == SERVER_INVALID_SOCKET)
 	{
-		printf("Failed to create a socket!\n");
+		ERROR("Failed to create a socket!");
 		return;
 	}
 
@@ -89,7 +98,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&reuseAddress, sizeof(reuseAddress)) == -1)
 	{
-		printf("Failed set socket options!\n");
+		ERROR("Failed set socket options!");
 		return;
 	}
 
@@ -98,13 +107,13 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 	if (ioctlsocket(serverSocket, FIONBIO, &mode) != 0)
 	{
-		printf("Failed to set non-blocking mode!");
+		ERROR("Failed to set non-blocking mode!");
 		return;
 	}
 #else
 	if (fcntl(serverSocket, F_SETFL, O_NONBLOCK) == -1)
 	{
-		printf("Failed to set non-blocking mode!");
+		ERROR("Failed to set non-blocking mode!");
 		return;
 	}
 #endif
@@ -112,9 +121,9 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	if (bind(serverSocket, result->ai_addr, result->ai_addrlen) == -1)
 	{
 #ifdef WIN32
-		printf("Failed to bind to the port!\n");
+		ERROR("Failed to bind to the port!");
 #else
-		printf("Failed to bind to the port! Try running the application with root permissions.\n");
+		ERROR("Failed to bind to the port! Try running the application with root permissions.");
 #endif
 
 		return;
@@ -124,7 +133,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 	if (listen(serverSocket, SOMAXCONN) == -1)
 	{
-		printf("Failed to listen!\n");
+		ERROR("Failed to listen!");
 		return;
 	}
 
@@ -137,15 +146,15 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	{
 		static int index;
 
-		for (index = 0; index < SERVER_MAX_CONNECTIONS; index++)
+		for (index = 0; index < server->maxConnections; index++)
 		{
-			if (connections[index].type == SERVER_CONNECTION_TYPE_UNCONNECTED)
+			if (server->connections[index].type == SERVER_CONNECTION_TYPE_UNCONNECTED)
 			{
 				continue;
 			}
 
 			static int bufferLength;
-			bufferLength = recv(connections[index].socket, buffer, SERVER_BUFFER_LENGTH, 0);
+			bufferLength = recv(server->connections[index].socket, buffer, SERVER_BUFFER_LENGTH, 0);
 
 			if (bufferLength == -1)
 			{
@@ -155,43 +164,28 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 				if (errno == EAGAIN || errno == EWOULDBLOCK)
 #endif
 				{
-					if (connections[index].lastPacket + SERVER_CONNECTION_TIMEOUT_IN_SECONDS < time(0))
+					if (server->connections[index].lastPacket + SERVER_CONNECTION_TIMEOUT_IN_SECONDS < time(0))
 					{
-						if (connections[index].type == SERVER_CONNECTION_TYPE_HTTP)
+						if (server->connections[index].type == SERVER_CONNECTION_TYPE_HTTP)
 						{
 							bufferLength = sprintf(buffer, "HTTP/1.1 408 Request Timeout\r\nDate: %s\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<h1>Request timeout</h1>", Server_GetTime());
-							send(connections[index].socket, buffer, bufferLength, 0);
+							send(server->connections[index].socket, buffer, bufferLength, 0);
 						}
 
-#ifdef WIN32
-						closesocket(connections[index].socket);
-#else
-						close(connections[index].socket);
-#endif
-						connectionsCount--;
-						connections[index].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-						connectionsIndexes[connectionsCount] = index;
+						Server_CloseConnection(server, index);
 					}
 				}
 				else
 				{
-#ifdef WIN32
-					closesocket(connections[index].socket);
-#else
-					close(connections[index].socket);
-#endif
-					connectionsCount--;
-					connections[index].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-					connectionsIndexes[connectionsCount] = index;
+					Server_CloseConnection(server, index);
 				}
 
 				continue;
 			}
 
-			if (connections[index].type == SERVER_CONNECTION_TYPE_WEBSOCKET)
+			if (server->connections[index].type == SERVER_CONNECTION_TYPE_WEBSOCKET)
 			{
-				connections[index].lastPacket = time(0);
-
+				server->connections[index].lastPacket = time(0);
 			}
 			else
 			{
@@ -222,17 +216,8 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 				if (position == headLength)
 				{
 					bufferLength = sprintf(buffer, "HTTP/1.1 400 Bad Request\r\nDate: %s\r\nConnection: close\r\n\r\n", Server_GetTime());
-					send(connections[index].socket, buffer, bufferLength, 0);
-
-#ifdef WIN32
-					closesocket(connections[index].socket);
-#else
-					close(connections[index].socket);
-#endif
-
-					connectionsCount--;
-					connections[index].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-					connectionsIndexes[connectionsCount] = index;
+					send(server->connections[index].socket, buffer, bufferLength, 0);
+					Server_CloseConnection(server, index);
 
 					continue;
 				}
@@ -251,17 +236,8 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 				if (position == headLength)
 				{
 					bufferLength = sprintf(buffer, "HTTP/1.1 400 Bad Request\r\nDate: %s\r\nConnection: close\r\n\r\n", Server_GetTime());
-					send(connections[index].socket, buffer, bufferLength, 0);
-
-#ifdef WIN32
-					closesocket(connections[index].socket);
-#else
-					close(connections[index].socket);
-#endif
-
-					connectionsCount--;
-					connections[index].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-					connectionsIndexes[connectionsCount] = index;
+					send(server->connections[index].socket, buffer, bufferLength, 0);
+					Server_CloseConnection(server, index);
 
 					continue;
 				}
@@ -271,22 +247,13 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 				if (strcmp(method, "GET") != 0 && strcmp(method, "HEAD") != 0)
 				{
 					bufferLength = sprintf(buffer, "HTTP/1.1 405 Method Not Allowed\r\nDate: %s\r\nConnection: close\r\nAllow: GET, HEAD\r\n\r\n", Server_GetTime());
-					send(connections[index].socket, buffer, bufferLength, 0);
-
-#ifdef WIN32
-					closesocket(connections[index].socket);
-#else
-					close(connections[index].socket);
-#endif
-
-					connectionsCount--;
-					connections[index].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-					connectionsIndexes[connectionsCount] = index;
+					send(server->connections[index].socket, buffer, bufferLength, 0);
+					Server_CloseConnection(server, index);
 
 					continue;
 				}
 
-				if (strcmp(url, "/websocket/") == 0)
+				if (strcmp(url, "/websocket/") == 0 && strcmp(method, "GET") == 0)
 				{
 					static char* upgradeHeader;
 					upgradeHeader = NULL;
@@ -337,17 +304,8 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 					if (upgradeHeader == NULL || websocketKeyHeader == NULL || strcmp(upgradeHeader, "websocket") != 0)
 					{
 						bufferLength = sprintf(buffer, "HTTP/1.1 303 See Other\r\nDate: %s\r\nConnection: close\r\nLocation: /\r\n\r\n", Server_GetTime());
-						send(connections[index].socket, buffer, bufferLength, 0);
-
-#ifdef WIN32
-						closesocket(connections[index].socket);
-#else
-						close(connections[index].socket);
-#endif
-
-						connectionsCount--;
-						connections[index].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-						connectionsIndexes[connectionsCount] = index;
+						send(server->connections[index].socket, buffer, bufferLength, 0);
+						Server_CloseConnection(server, index);
 
 						continue;
 					}
@@ -355,9 +313,9 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 					sprintf(websocketKeyUnhashed, "%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", websocketKeyHeader);
 
 					bufferLength = sprintf(buffer, "HTTP/1.1 101 Switching Protocols\r\nDate: %s\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Accept: %s\r\n\r\n", Server_GetTime(), Crypto_Hash(websocketKeyUnhashed, strlen(websocketKeyUnhashed)));
-					send(connections[index].socket, buffer, bufferLength, 0);
+					send(server->connections[index].socket, buffer, bufferLength, 0);
 
-					connections[index].type = SERVER_CONNECTION_TYPE_WEBSOCKET;
+					server->connections[index].type = SERVER_CONNECTION_TYPE_WEBSOCKET;
 
 					continue;
 				}
@@ -372,64 +330,71 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 						fullResponse = strcmp(method, "GET");
 
 						bufferLength = sprintf(buffer, "HTTP/1.1 200 OK\r\nDate: %s\r\nConnection: close\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n", Server_GetTime(), server->staticFiles[file].contentType, server->staticFiles[file].bufferLength);
-						send(connections[index].socket, buffer, bufferLength, 0);
+						send(server->connections[index].socket, buffer, bufferLength, 0);
 
 						if (fullResponse == 0)
 						{
-							send(connections[index].socket, server->staticFiles[file].buffer, server->staticFiles[file].bufferLength, 0);
+							send(server->connections[index].socket, server->staticFiles[file].buffer, server->staticFiles[file].bufferLength, 0);
 						}
 
-#ifdef WIN32
-						closesocket(connections[index].socket);
-#else
-						close(connections[index].socket);
-#endif
-
-						connectionsCount--;
-						connections[index].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-						connectionsIndexes[connectionsCount] = index;
+						Server_CloseConnection(server, index);
 
 						break;
 					}
 				}
 
-				if (connections[index].type == SERVER_CONNECTION_TYPE_UNCONNECTED)
+				if (server->connections[index].type == SERVER_CONNECTION_TYPE_UNCONNECTED)
 				{
 					continue;
 				}
 
 				bufferLength = sprintf(buffer, "HTTP/1.1 303 See Other\r\nDate: %s\r\nConnection: close\r\nLocation: /\r\n\r\n", Server_GetTime());
-				send(connections[index].socket, buffer, bufferLength, 0);
-
-#ifdef WIN32
-				closesocket(connections[index].socket);
-#else
-				close(connections[index].socket);
-#endif
-
-				connectionsCount--;
-				connections[index].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-				connectionsIndexes[connectionsCount] = index;
+				send(server->connections[index].socket, buffer, bufferLength, 0);
+				Server_CloseConnection(server, index);
 			}
 		}
 
-		if (connectionsCount < SERVER_MAX_CONNECTIONS)
-		{
-			static int socket;
-			socket = accept(serverSocket, NULL, NULL);
+		static int socket;
+		socket = accept(serverSocket, NULL, NULL);
 
-			if (socket == SERVER_INVALID_SOCKET)
+		if (socket == SERVER_INVALID_SOCKET)
+		{
+			continue;
+		}
+
+		if (server->maxConnections == server->connectionsCount)
+		{
+			static int* newConnectionIndexes;
+			newConnectionIndexes = realloc(server->connectionsIndexes, 2 * server->maxConnections * sizeof(int));
+
+			static Server_Connection* newConnections;
+			newConnections = realloc(server->connections, 2 * server->maxConnections * sizeof(Server_Connection));
+
+			if (newConnectionIndexes == NULL || newConnections == NULL)
 			{
-				continue;
+				ERROR("Failed to allocate memory!");
+				return;
 			}
+
+			server->connectionsIndexes = newConnectionIndexes;
+			server->connections = newConnections;
 
 			static int connectionIndex;
-			connectionIndex = connectionsIndexes[connectionsCount];
-			connections[connectionIndex].type = SERVER_CONNECTION_TYPE_HTTP;
-			connections[connectionIndex].lastPacket = time(0);
-			connections[connectionIndex].socket = socket;
-			connectionsCount++;
+
+			for (connectionIndex = server->maxConnections; connectionIndex < 2 * server->maxConnections; connectionIndex++)
+			{
+				server->connectionsIndexes[connectionIndex] = connectionIndex;
+			}
+
+			server->maxConnections *= 2;
 		}
+
+		static int connectionIndex;
+		connectionIndex = server->connectionsIndexes[server->connectionsCount];
+		server->connections[connectionIndex].type = SERVER_CONNECTION_TYPE_HTTP;
+		server->connections[connectionIndex].lastPacket = time(0);
+		server->connections[connectionIndex].socket = socket;
+		server->connectionsCount++;
 	}
 }
 
@@ -439,16 +404,42 @@ void Server_SetStaticFilesMaxSize(Server* server, int size)
 	server->staticFiles = malloc(sizeof(Server_StaticFile) * size);
 }
 
-char Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType)
+int Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType)
 {
-	static int length;
-	length = Filesystem_ReadFile(path, &server->staticFiles[server->staticFilesCount].buffer, 1);
+	FILE* file = fopen(path, "rb");
+
+	if (file == NULL)
+	{
+		ERROR("Failed to open a static file!");
+		return 0;
+	}
+
+	fseek(file, 0L, SEEK_END);
+	int length = ftell(file);
 
 	if (length == -1)
 	{
-		printf("Failed to add a static file (%s)!\n", path);
+		ERROR("Failed to read a static file!");
 		return 0;
 	}
+
+	rewind(file);
+
+	server->staticFiles[server->staticFilesCount].buffer = malloc(length);
+
+	if (server->staticFiles[server->staticFilesCount].buffer == NULL)
+	{
+		ERROR("Failed to allocate memory!");
+		return 0;
+	}
+
+	if (fread(server->staticFiles[server->staticFilesCount].buffer, sizeof(char), length, file) != length)
+	{
+		ERROR("Failed to read a static file!");
+		return 0;
+	}
+
+	fclose(file);
 
 	server->staticFiles[server->staticFilesCount].path = path;
 	server->staticFiles[server->staticFilesCount].url = url;
