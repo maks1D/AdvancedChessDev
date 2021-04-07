@@ -2,11 +2,10 @@
 
 char* Server_GetTime()
 {
-	static time_t rawTime;
+	time_t rawTime;
 	time(&rawTime);
 
-	static char* output;
-	output = asctime(gmtime(&rawTime));
+	char* output = asctime(gmtime(&rawTime));
 
 	if (output == NULL)
 	{
@@ -25,14 +24,14 @@ void Server_CloseConnection(Server* server, int connectionIndex)
 #else
 	close(connections[index].socket);
 #endif
-	server->connectionsCount--;
+	server->numberOfConnections--;
 	server->connections[connectionIndex].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-	server->connectionsIndexes[server->connectionsCount] = connectionIndex;
+	server->connectionsIndexes[server->numberOfConnections] = connectionIndex;
 }
 
-void Server_Start(Server* server, const char* port, const char* internetProtocolVersion)
+void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 {
-	server->connectionsCount = 0;
+	server->numberOfConnections = 0;
 	server->maxConnections = 1;
 	server->connectionsIndexes = malloc(sizeof(int));
 	server->connections = malloc(sizeof(Server_Connection));
@@ -103,7 +102,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 	}
 
 #ifdef WIN32
-	unsigned long mode = 1;
+	int mode = 1;
 
 	if (ioctlsocket(serverSocket, FIONBIO, &mode) != 0)
 	{
@@ -144,17 +143,14 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 	while (1)
 	{
-		static int index;
-
-		for (index = 0; index < server->maxConnections; index++)
+		for (int index = 0; index < server->maxConnections; index++)
 		{
 			if (server->connections[index].type == SERVER_CONNECTION_TYPE_UNCONNECTED)
 			{
 				continue;
 			}
 
-			static int bufferLength;
-			bufferLength = recv(server->connections[index].socket, buffer, SERVER_BUFFER_LENGTH, 0);
+			int bufferLength = recv(server->connections[index].socket, buffer, SERVER_BUFFER_LENGTH, 0);
 
 			if (bufferLength == -1)
 			{
@@ -189,9 +185,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 			}
 			else
 			{
-				static int position;
-
-				for (position = 1; position < bufferLength; position++)
+				for (int position = 1; position < bufferLength; position++)
 				{
 					if (buffer[position - 1] == '\r' && buffer[position] == '\n')
 					{
@@ -200,13 +194,10 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 					}
 				}
 
-				position = 0;
+				int position = 0;
+				int headLength = strlen(buffer);
 
-				static int headLength;
-				headLength = strlen(buffer);
-
-				static char* method;
-				method = buffer;
+				char* method = buffer;
 
 				while (position < headLength && buffer[position] != ' ')
 				{
@@ -225,8 +216,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 				buffer[position] = '\x00';
 				position++;
 
-				static char* url;
-				url = &buffer[position];
+				char* url = &buffer[position];
 
 				while (position < headLength && buffer[position] != ' ' && buffer[position] != '?')
 				{
@@ -255,19 +245,12 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 
 				if (strcmp(url, "/websocket/") == 0 && strcmp(method, "GET") == 0)
 				{
-					static char* upgradeHeader;
-					upgradeHeader = NULL;
+					char* upgradeHeader = NULL;
+					char* websocketKeyHeader = NULL;
+					char* headerName = &buffer[headLength + 2];
+					char* headerValue = NULL;
 
-					char* websocketKeyHeader;
-					websocketKeyHeader = NULL;
-
-					static char* headerName;
-					headerName = &buffer[headLength + 2];
-
-					static char* headerValue;
-
-					static int parsingMode;
-					parsingMode = SERVER_HEADERS_PARSING_MODE_NAME;
+					int parsingMode = SERVER_HEADERS_PARSING_MODE_NAME;
 
 					for (position = headLength + 3; position < bufferLength; position++)
 					{
@@ -320,14 +303,11 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 					continue;
 				}
 
-				static int file;
-
-				for (file = 0; file < server->staticFilesCount; file++)
+				for (int file = 0; file < server->numberOfStaticFiles; file++)
 				{
 					if (strcmp(url, server->staticFiles[file].url) == 0)
 					{
-						static int fullResponse;
-						fullResponse = strcmp(method, "GET");
+						int fullResponse = strcmp(method, "GET");
 
 						bufferLength = sprintf(buffer, "HTTP/1.1 200 OK\r\nDate: %s\r\nConnection: close\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n", Server_GetTime(), server->staticFiles[file].contentType, server->staticFiles[file].bufferLength);
 						send(server->connections[index].socket, buffer, bufferLength, 0);
@@ -354,21 +334,17 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 			}
 		}
 
-		static int socket;
-		socket = accept(serverSocket, NULL, NULL);
+		int socket = accept(serverSocket, NULL, NULL);
 
 		if (socket == SERVER_INVALID_SOCKET)
 		{
 			continue;
 		}
 
-		if (server->maxConnections == server->connectionsCount)
+		if (server->maxConnections == server->numberOfConnections)
 		{
-			static int* newConnectionIndexes;
-			newConnectionIndexes = realloc(server->connectionsIndexes, 2 * server->maxConnections * sizeof(int));
-
-			static Server_Connection* newConnections;
-			newConnections = realloc(server->connections, 2 * server->maxConnections * sizeof(Server_Connection));
+			int* newConnectionIndexes = realloc(server->connectionsIndexes, 2 * server->maxConnections * sizeof(int));
+			Server_Connection* newConnections = realloc(server->connections, 2 * server->maxConnections * sizeof(Server_Connection));
 
 			if (newConnectionIndexes == NULL || newConnections == NULL)
 			{
@@ -379,9 +355,7 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 			server->connectionsIndexes = newConnectionIndexes;
 			server->connections = newConnections;
 
-			static int connectionIndex;
-
-			for (connectionIndex = server->maxConnections; connectionIndex < 2 * server->maxConnections; connectionIndex++)
+			for (int connectionIndex = server->maxConnections; connectionIndex < 2 * server->maxConnections; connectionIndex++)
 			{
 				server->connectionsIndexes[connectionIndex] = connectionIndex;
 			}
@@ -389,22 +363,29 @@ void Server_Start(Server* server, const char* port, const char* internetProtocol
 			server->maxConnections *= 2;
 		}
 
-		static int connectionIndex;
-		connectionIndex = server->connectionsIndexes[server->connectionsCount];
+		int connectionIndex = server->connectionsIndexes[server->numberOfConnections];
 		server->connections[connectionIndex].type = SERVER_CONNECTION_TYPE_HTTP;
 		server->connections[connectionIndex].lastPacket = time(0);
 		server->connections[connectionIndex].socket = socket;
-		server->connectionsCount++;
+		server->numberOfConnections++;
 	}
 }
 
-void Server_SetStaticFilesMaxSize(Server* server, int size)
+int Server_SetStaticFilesMaxSize(Server* server, int size)
 {
-	server->staticFilesCount = 0;
+	server->numberOfStaticFiles = 0;
 	server->staticFiles = malloc(sizeof(Server_StaticFile) * size);
+
+	if (server->staticFiles == NULL)
+	{
+		ERROR("Failed to allocate memory!");
+		return 0;
+	}
+
+	return 1;
 }
 
-int Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType)
+int Server_AddStaticFile(Server* server, char* path, char* url, char* contentType)
 {
 	FILE* file = fopen(path, "rb");
 
@@ -425,15 +406,15 @@ int Server_AddStaticFile(Server* server, const char* path, const char* url, cons
 
 	rewind(file);
 
-	server->staticFiles[server->staticFilesCount].buffer = malloc(length);
+	server->staticFiles[server->numberOfStaticFiles].buffer = malloc(length);
 
-	if (server->staticFiles[server->staticFilesCount].buffer == NULL)
+	if (server->staticFiles[server->numberOfStaticFiles].buffer == NULL)
 	{
 		ERROR("Failed to allocate memory!");
 		return 0;
 	}
 
-	if (fread(server->staticFiles[server->staticFilesCount].buffer, sizeof(char), length, file) != length)
+	if (fread(server->staticFiles[server->numberOfStaticFiles].buffer, sizeof(char), length, file) != length)
 	{
 		ERROR("Failed to read a static file!");
 		return 0;
@@ -441,11 +422,11 @@ int Server_AddStaticFile(Server* server, const char* path, const char* url, cons
 
 	fclose(file);
 
-	server->staticFiles[server->staticFilesCount].path = path;
-	server->staticFiles[server->staticFilesCount].url = url;
-	server->staticFiles[server->staticFilesCount].contentType = contentType;
-	server->staticFiles[server->staticFilesCount].bufferLength = length;
-	server->staticFilesCount++;
+	server->staticFiles[server->numberOfStaticFiles].path = path;
+	server->staticFiles[server->numberOfStaticFiles].url = url;
+	server->staticFiles[server->numberOfStaticFiles].contentType = contentType;
+	server->staticFiles[server->numberOfStaticFiles].bufferLength = length;
+	server->numberOfStaticFiles++;
 
 	return 1;
 }

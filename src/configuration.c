@@ -1,6 +1,10 @@
 #include "configuration.h"
 
-int Configuration_Load(Configuration* configuration, const char* path)
+#ifdef WIN32
+#pragma warning (disable: 6385 6386)
+#endif
+
+int Configuration_Load(Configuration* configuration, char* path)
 {
 	FILE* file = fopen(path, "rb");
 
@@ -32,7 +36,7 @@ int Configuration_Load(Configuration* configuration, const char* path)
 
 	rewind(file);
 
-	char* buffer = malloc(length + 1);
+	char* buffer = malloc(length);
 
 	if (buffer == NULL)
 	{
@@ -194,7 +198,7 @@ int Configuration_Load(Configuration* configuration, const char* path)
 	return 1;
 }
 
-char* Configuration_Read(Configuration* configuration, const char* property)
+char* Configuration_Read(Configuration* configuration, char* property)
 {
 	for (int index = 0; index < configuration->entries; index++)
 	{

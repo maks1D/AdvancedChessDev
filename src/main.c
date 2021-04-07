@@ -5,17 +5,30 @@
 #include "database.h"
 #include "crypto.h"
 
+#include "database.h"
+
 int main()
 {
+	Database database;
+	
+	if (!Database_Open(&database, "AdvancedChess.database"))
+	{
+		return 1;
+	}
+
 	Configuration configuration;
 
-	if (!Configuration_Load(&configuration, "settings.txt"))
+	if (!Configuration_Load(&configuration, "AdvancedChess.configuration"))
 	{
 		return 1;
 	}
 	
 	Server server;
-	Server_SetStaticFilesMaxSize(&server, 4);
+
+	if (!Server_SetStaticFilesMaxSize(&server, 4))
+	{
+		return 1;
+	}
 	
 	if (!Server_AddStaticFile(&server, "static/index.html", "/", "text/html") ||
 		!Server_AddStaticFile(&server, "static/style.css", "/style.css", "text/css") ||

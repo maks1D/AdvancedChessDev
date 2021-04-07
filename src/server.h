@@ -42,32 +42,32 @@ typedef int Server_Socket;
 
 typedef struct
 {
-	unsigned char type;
+	char type;
 	time_t lastPacket;
 	Server_Socket socket;
 } Server_Connection;
 
 typedef struct
 {
-	const char* path;
-	const char* url;
-	const char* contentType;
+	char* path;
+	char* url;
+	char* contentType;
 	char* buffer;
 	int bufferLength;
 } Server_StaticFile;
 
 typedef struct
 {
-	int staticFilesCount;
+	int numberOfStaticFiles;
 	Server_StaticFile* staticFiles;
 	int maxConnections;
-	int connectionsCount;
+	int numberOfConnections;
 	int* connectionsIndexes;
 	Server_Connection* connections;
 } Server;
 
 char* Server_GetTime();
 void Server_CloseConnection(Server* server, int socketIndex);
-void Server_Start(Server* server, const char* port, const char* internetProtocolVersion);
-void Server_SetStaticFilesMaxSize(Server* server, int size);
-int Server_AddStaticFile(Server* server, const char* path, const char* url, const char* contentType);
+void Server_Start(Server* server, char* port, char* internetProtocolVersion);
+int Server_SetStaticFilesMaxSize(Server* server, int size);
+int Server_AddStaticFile(Server* server, char* path, char* url, char* contentType);

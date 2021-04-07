@@ -1,8 +1,16 @@
+# Windows-related files
+
 /.vs
 /Debug
 /Release
 /AdvancedChess.exe
+
+# Linux-related files
+
 /obj
 /AdvancedChess
-/data
-/settings.txt
+
+# Server configuration and the database
+
+/AdvancedChess.database
+/AdvancedChess.configuration

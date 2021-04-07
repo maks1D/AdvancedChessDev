@@ -27,40 +27,36 @@ char Crypto_ToBase64(int number)
 
 char* Crypto_Hash(unsigned char* message, int messageLength)
 {
-	unsigned long long originalMessageLength = (unsigned long long)messageLength * 8;
+	long long originalMessageLength = (long long)messageLength * 8;
 
-	message[messageLength] = (unsigned char)0x80;
+	message[messageLength] = 0x80U;
 	messageLength++;
 
 	while (messageLength % 64 != 56)
 	{
-		message[messageLength] = (unsigned char)0;
+		message[messageLength] = 0;
 		messageLength++;
 	}
 
-	static int index;
-
-	for (index = 0; index < 8; index++)
+	for (int index = 0; index < 8; index++)
 	{
-		message[messageLength + index] = (unsigned char)((originalMessageLength >> ((7 - index) * 8)) & 0xff);
+		message[messageLength + index] = ((originalMessageLength >> ((7 - index) * 8)) & 0xff);
 	}
 
 	messageLength = (messageLength + 8) / 64;
 
-	static unsigned int results[5];
+	unsigned int results[5];
 	results[0] = 0x67452301U;
 	results[1] = 0xEFCDAB89U;
 	results[2] = 0x98BADCFEU;
 	results[3] = 0x10325476U;
 	results[4] = 0xC3D2E1F0U;
 
-	static int chunk;
-
-	for (chunk = 0; chunk < messageLength; chunk++)
+	for (int chunk = 0; chunk < messageLength; chunk++)
 	{
-		static unsigned int words[80];
+		unsigned int words[80];
 
-		for (index = 0; index < 16; index++)
+		for (int index = 0; index < 16; index++)
 		{
 			words[index] = ((unsigned int)message[(chunk * 64) + (index * 4)] << 24) |
 				((unsigned int)message[(chunk * 64) + (index * 4) + 1] << 16) |
@@ -69,23 +65,22 @@ char* Crypto_Hash(unsigned char* message, int messageLength)
 
 		}
 
-		for (index = 16; index < 80; index++)
+		for (int index = 16; index < 80; index++)
 		{
 			words[index] = words[index - 3] ^ words[index - 8] ^ words[index - 14] ^ words[index - 16];
 			words[index] = (words[index] << 1) | (words[index] >> 31);
 		}
 
-		static unsigned int numbers[6];
+		unsigned int numbers[6];
 		numbers[0] = results[0];
 		numbers[1] = results[1];
 		numbers[2] = results[2];
 		numbers[3] = results[3];
 		numbers[4] = results[4];
 
-		static int value;
-		value = 0x5A827999U;
+		int value = 0x5A827999U;
 
-		for (index = 0; index < 80; index++)
+		for (int index = 0; index < 80; index++)
 		{
 			if (index < 20)
 			{
@@ -117,8 +112,7 @@ char* Crypto_Hash(unsigned char* message, int messageLength)
 				value = 0xCA62C1D6U;
 			}
 
-			static int number;
-			number = ((numbers[0] << 5) | (numbers[0] >> 27)) + numbers[5] + numbers[4] + value + words[index];
+			int number = ((numbers[0] << 5) | (numbers[0] >> 27)) + numbers[5] + numbers[4] + value + words[index];
 
 			numbers[4] = numbers[3];
 			numbers[3] = numbers[2];
@@ -127,19 +121,17 @@ char* Crypto_Hash(unsigned char* message, int messageLength)
 			numbers[0] = number;
 		}
 
-		for (index = 0; index < 5; index++)
+		for (int index = 0; index < 5; index++)
 		{
 			results[index] += numbers[index];
 		}
 	}
 
-	static unsigned char output[20];
+	unsigned char output[20];
 
-	for (index = 0; index < 5; index++)
+	for (int index = 0; index < 5; index++)
 	{
-		static int byte;
-
-		for (byte = 0; byte < 4; byte++)
+		for (int byte = 0; byte < 4; byte++)
 		{
 			output[4 * index + byte] = (results[index] >> ((3 - byte) * 8)) & 0xff;
 		}
@@ -147,7 +139,7 @@ char* Crypto_Hash(unsigned char* message, int messageLength)
 
 	static char encoded[29];
 
-	for (index = 0; index < 6; index++)
+	for (int index = 0; index < 6; index++)
 	{
 		encoded[index * 4] = Crypto_ToBase64(output[index * 3] >> 2);
 		encoded[index * 4 + 1] = Crypto_ToBase64(((output[index * 3] & 0b11) << 4) | (output[index * 3 + 1] >> 4));
@@ -155,9 +147,9 @@ char* Crypto_Hash(unsigned char* message, int messageLength)
 		encoded[index * 4 + 3] = Crypto_ToBase64(output[index * 3 + 2] & 0b111111);
 	}
 
-	encoded[24] = Crypto_ToBase64(output[index * 3] >> 2);
-	encoded[25] = Crypto_ToBase64(((output[index * 3] & 0b11) << 4) | (output[index * 3 + 1] >> 4));
-	encoded[26] = Crypto_ToBase64((output[index * 3 + 1] & 0b1111) << 2);
+	encoded[24] = Crypto_ToBase64(output[18] >> 2);
+	encoded[25] = Crypto_ToBase64(((output[18] & 0b11) << 4) | (output[19] >> 4));
+	encoded[26] = Crypto_ToBase64((output[19] & 0b1111) << 2);
 	encoded[27] = '=';
 	encoded[28] = '\x00';
 
@@ -166,9 +158,9 @@ char* Crypto_Hash(unsigned char* message, int messageLength)
 
 char* Crypto_GenerateRandomBytes()
 {
-	unsigned char* bytes = malloc(96);
+	char* bytes = malloc(96);
 
-	if (bytes == 0)
+	if (bytes == NULL)
 	{
 		return NULL;
 	}

@@ -22,5 +22,5 @@ typedef struct
 	char** values;
 } Configuration;
 
-int Configuration_Load(Configuration* configuration, const char* path);
-char* Configuration_Read(Configuration* configuration, const char* property);
+int Configuration_Load(Configuration* configuration, char* path);
+char* Configuration_Read(Configuration* configuration, char* property);

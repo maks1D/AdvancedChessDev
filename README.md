@@ -34,7 +34,7 @@ AdvancedChess is an open-source cross-platform dependency-free chess server writ
 
 ### Windows
 
-Open `AdvancedChess.sln` in Visual Studio 2019, select `Release` configuration and press <kbd>CTRL</kbd> + <kbd>B</kbd>.
+Open `AdvancedChess.sln` in Visual Studio 2019, select **Release** configuration and press <kbd>CTRL</kbd> + <kbd>B</kbd>.
 
 ### Linux
 
@@ -45,7 +45,7 @@ chmod +x build.sh
 
 ## Adding configuration file
 
-Before you can run the server for the first time, you need to create a copy of `settings.txt.example` and name it `settings.txt`. You can change the server settings by editing this file.
+Before you can run the server for the first time, you need to create a copy of `AdvancedChess.configuration.example` and name it `AdvancedChess.configuration`. You can change the server settings by editing this file.
 
 ## License
 
