@@ -27,6 +27,9 @@
     <ClCompile Include="src\crypto.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\handlers.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\server.h">
@@ -48,6 +51,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\error.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\handlers.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

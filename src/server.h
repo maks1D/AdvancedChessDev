@@ -1,3 +1,4 @@
+#pragma once
 #ifdef WIN32
 #define _CRT_SECURE_NO_WARNINGS
 
@@ -64,9 +65,10 @@ typedef struct
 	int numberOfConnections;
 	int* connectionsIndexes;
 	Server_Connection* connections;
+	void (*websocketConnectionHandler)(void*, int, char*);
+	int (*websocketPacketHandler)(void*, int, char*, int);
 } Server;
 
-char* Server_GetTime();
 void Server_CloseConnection(Server* server, int socketIndex);
 void Server_Start(Server* server, char* port, char* internetProtocolVersion);
 int Server_SetStaticFilesMaxSize(Server* server, int size);

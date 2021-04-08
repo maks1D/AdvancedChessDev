@@ -182,6 +182,58 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 			if (server->connections[index].type == SERVER_CONNECTION_TYPE_WEBSOCKET)
 			{
 				server->connections[index].lastPacket = time(0);
+
+				int begin = 2;
+
+				if (bufferLength < 2)
+				{
+					Server_CloseConnection(server, index);
+					continue;
+				}
+
+				int packetType = buffer[0] & 0b00001111;
+
+				if (packetType != 1)
+				{
+					continue;
+				}
+
+				if ((0b01111111 & buffer[1]) == 126)
+				{
+					begin = 4;
+				}
+				else if ((0b01111111 & buffer[1]) == 127)
+				{
+					begin = 10;
+				}
+
+				if (0b10000000 & buffer[1])
+				{
+					begin += 4;
+				}
+
+				if (bufferLength <= begin)
+				{
+					Server_CloseConnection(server, index);
+					continue;
+				}
+
+				if (0b10000000 & buffer[1])
+				{
+					int mask[4];
+
+					for (int position = 0; position < 4; position++)
+					{
+						mask[position] = buffer[begin - 4 + position];
+					}
+
+					for (int position = begin; position < bufferLength; position++)
+					{
+						buffer[position] ^= mask[(position - begin) % 4];
+					}
+				}
+
+				server->websocketPacketHandler(server, index, &buffer[begin], bufferLength - begin);
 			}
 			else
 			{
@@ -245,6 +297,7 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 
 				if (strcmp(url, "/websocket/") == 0 && strcmp(method, "GET") == 0)
 				{
+					char* cookieHeader = NULL;
 					char* upgradeHeader = NULL;
 					char* websocketKeyHeader = NULL;
 					char* headerName = &buffer[headLength + 2];
@@ -277,6 +330,10 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 							{
 								websocketKeyHeader = headerValue;
 							}
+							else if (strcmp(headerName, "Cookie") == 0)
+							{
+								cookieHeader = headerValue;
+							}
 
 							position++;
 							headerName = &buffer[position];
@@ -293,12 +350,13 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 						continue;
 					}
 
+					server->connections[index].type = SERVER_CONNECTION_TYPE_WEBSOCKET;
+					server->websocketConnectionHandler(server, index, cookieHeader);
+
 					sprintf(websocketKeyUnhashed, "%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", websocketKeyHeader);
 
 					bufferLength = sprintf(buffer, "HTTP/1.1 101 Switching Protocols\r\nDate: %s\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Accept: %s\r\n\r\n", Server_GetTime(), Crypto_Hash(websocketKeyUnhashed, strlen(websocketKeyUnhashed)));
 					send(server->connections[index].socket, buffer, bufferLength, 0);
-
-					server->connections[index].type = SERVER_CONNECTION_TYPE_WEBSOCKET;
 
 					continue;
 				}

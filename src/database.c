@@ -4,11 +4,11 @@
 #pragma warning (disable: 6385 6386)
 #endif
 
-int Database_Open(Database* database, char* path)
+int Database_Open(Database* database, char* path, int minimumNumberOfTables)
 {
 	database->numberOfTables = 0;
-	database->maximumNumberOfTables = 1;
-	database->tables = malloc(sizeof(Database_Table));
+	database->maximumNumberOfTables = minimumNumberOfTables;
+	database->tables = malloc(sizeof(Database_Table) * minimumNumberOfTables);
 
 	if (database->tables == NULL)
 	{
@@ -16,17 +16,20 @@ int Database_Open(Database* database, char* path)
 		return 0;
 	}
 
-	database->tables[0].numberOfEntries = 0;
-	database->tables[0].maximumNumberOfEntries = 1;
-	database->tables[0].entries = malloc(sizeof(char*));
-
-	if (database->tables[0].entries == NULL)
+	for (int index = 0; index < minimumNumberOfTables; index++)
 	{
-		ERROR("Failed to allocate memory!");
-		return 0;
-	}
+		database->tables[index].numberOfEntries = 0;
+		database->tables[index].maximumNumberOfEntries = 1;
+		database->tables[index].entries = malloc(sizeof(char*));
 
-	database->tables[0].entries[0] = NULL;
+		if (database->tables[index].entries == NULL)
+		{
+			ERROR("Failed to allocate memory!");
+			return 0;
+		}
+
+		database->tables[index].entries[0] = NULL;
+	}
 
 	database->file = fopen(path, "rb+");
 
@@ -108,6 +111,13 @@ int Database_Open(Database* database, char* path)
 				newTables[newTablesIndex].numberOfEntries = 0;
 				newTables[newTablesIndex].maximumNumberOfEntries = 1;
 				newTables[newTablesIndex].entries = malloc(sizeof(char*));
+
+				if (newTables[newTablesIndex].entries == NULL)
+				{
+					ERROR("Failed to allocate memory!");
+					return 0;
+				}
+
 				newTables[newTablesIndex].entries[0] = NULL;
 			}
 

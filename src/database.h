@@ -23,6 +23,6 @@ typedef struct
 	FILE* file;
 } Database;
 
-int Database_Open(Database* database, char* path);
+int Database_Open(Database* database, char* path, int minimumNumberOfTables);
 int Database_AddEntry(Database* database, int tableIndex, char* data);
 int Database_ModifyEntry(Database* database, int tableIndex, int entryIndex, char* data);

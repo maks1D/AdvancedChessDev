@@ -101,6 +101,7 @@
     <ClCompile Include="src\configuration.c" />
     <ClCompile Include="src\database.c" />
     <ClCompile Include="src\crypto.c" />
+    <ClCompile Include="src\handlers.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\server.c" />
   </ItemGroup>
@@ -111,6 +112,7 @@
     <ClInclude Include="src\database.h" />
     <ClInclude Include="src\error.h" />
     <ClInclude Include="src\crypto.h" />
+    <ClInclude Include="src\handlers.h" />
     <ClInclude Include="src\server.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

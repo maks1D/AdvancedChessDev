@@ -156,7 +156,7 @@ char* Crypto_Hash(unsigned char* message, int messageLength)
 	return encoded;
 }
 
-char* Crypto_GenerateRandomBytes()
+char* Crypto_RandomString()
 {
 	char* bytes = malloc(96);
 
