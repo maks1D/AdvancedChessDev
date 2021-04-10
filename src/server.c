@@ -29,6 +29,11 @@ void Server_CloseConnection(Server* server, int connectionIndex)
 	server->connectionsIndexes[server->numberOfConnections] = connectionIndex;
 }
 
+void Server_SendWebsocketMessage(Server* server, int connectionIndex, char* message, int length)
+{
+
+}
+
 void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 {
 	server->numberOfConnections = 0;
@@ -141,6 +146,12 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 	char* buffer = malloc(SERVER_BUFFER_LENGTH);
 	char* websocketKeyUnhashed = malloc(SERVER_BUFFER_LENGTH + 100);
 
+	if (buffer == NULL || websocketKeyUnhashed == NULL)
+	{
+		ERROR("Failed to allocate memory!");
+		return;
+	}
+
 	while (1)
 	{
 		for (int index = 0; index < server->maxConnections; index++)
@@ -192,6 +203,12 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 				}
 
 				int packetType = buffer[0] & 0b00001111;
+
+				if (packetType == 8)
+				{
+					Server_CloseConnection(server, index);
+					continue;
+				}
 
 				if (packetType != 1)
 				{
@@ -350,6 +367,7 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 						continue;
 					}
 
+					server->connections[index].userId = -1;
 					server->connections[index].type = SERVER_CONNECTION_TYPE_WEBSOCKET;
 					server->websocketConnectionHandler(server, index, cookieHeader);
 

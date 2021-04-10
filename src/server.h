@@ -43,6 +43,7 @@ typedef int Server_Socket;
 
 typedef struct
 {
+	int userId;
 	char type;
 	time_t lastPacket;
 	Server_Socket socket;
@@ -69,6 +70,7 @@ typedef struct
 	int (*websocketPacketHandler)(void*, int, char*, int);
 } Server;
 
+void Server_SendWebsocketMessage(Server* server, int connectionIndex, char* message, int length);
 void Server_CloseConnection(Server* server, int socketIndex);
 void Server_Start(Server* server, char* port, char* internetProtocolVersion);
 int Server_SetStaticFilesMaxSize(Server* server, int size);

@@ -1,55 +1,60 @@
 @keyframes spin
 {
-    0%
-    {
-        transform: rotate(0deg);
-    }
+	0%
+	{
+		transform: rotate(0deg);
+	}
 
-    100%
-    {
-        transform: rotate(360deg);
-    }
+	100%
+	{
+		transform: rotate(360deg);
+	}
 }
 
 :root
 {
-    --color-primary: #55a4ff;
-    --color-background-primary: #1c2127;
-    --color-background-secondary: #161a1f;
-    --color-background-tertiary: #272e36;
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #a8abae; 
+	--color-primary: #55a4ff;
+	--color-background-primary: #1c2127;
+	--color-background-secondary: #161a1f;
+	--color-background-tertiary: #272e36;
+	--color-text-primary: #ffffff;
+	--color-text-secondary: #a8abae; 
 }
 
 html
 {
-    height: 100%;
+	height: 100%;
 }
 
 body
 {
-    height: 100%;
-    margin: 0;
-    background-color: var(--color-background-primary);
+	height: 100%;
+	margin: 0;
+	background-color: var(--color-background-primary);
 }
 
 .loader
 {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
 }
 
 .loader::before
 {
-    content: "";
-    display: block;
-    width: 40px;
-    height: 40px;
-    border-width: 3px;
-    border-style: solid;
-    border-color: var(--color-primary) var(--color-background-tertiary);
-    border-radius: 50%;
-    animation: spin 2s linear infinite;
+	content: "";
+	display: block;
+	width: 40px;
+	height: 40px;
+	border-width: 3px;
+	border-style: solid;
+	border-color: var(--color-primary) var(--color-background-tertiary);
+	border-radius: 50%;
+	animation: spin 2s linear infinite;
+}
+
+.container
+{
+	display: none;
 }

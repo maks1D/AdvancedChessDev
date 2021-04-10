@@ -25,6 +25,16 @@ char Crypto_ToBase64(int number)
 	return '/';
 }
 
+char Crypto_ToBase16(int number)
+{
+	if (number <= 9)
+	{
+		return '0' + number;
+	}
+
+	return 'a' + number - 10;
+}
+
 char* Crypto_Hash(unsigned char* message, int messageLength)
 {
 	long long originalMessageLength = (long long)messageLength * 8;
@@ -158,7 +168,7 @@ char* Crypto_Hash(unsigned char* message, int messageLength)
 
 char* Crypto_RandomString()
 {
-	char* bytes = malloc(96);
+	unsigned char bytes[32];
 
 	if (bytes == NULL)
 	{
@@ -178,8 +188,13 @@ char* Crypto_RandomString()
 	}
 #endif
 
-	char* result = Crypto_Hash(bytes, 32);
+	static char output[65];
 
-	free(bytes);
-	return result;
+	for (int index = 0; index < 32; index++)
+	{
+		output[2 * index] = Crypto_ToBase16(bytes[index] >> 4);
+		output[2 * index + 1] = Crypto_ToBase16(bytes[index] & 0xf);
+	}
+
+	return output;
 }
