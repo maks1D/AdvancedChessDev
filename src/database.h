@@ -1,12 +1,5 @@
 #pragma once
-#ifdef WIN32
-#define _CRT_SECURE_NO_WARNINGS
-#endif
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-#include "error.h"
+#include "headers.h"
 
 typedef struct
 {

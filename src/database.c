@@ -1,9 +1,5 @@
 #include "database.h"
 
-#ifdef WIN32
-#pragma warning (disable: 6385 6386)
-#endif
-
 int Database_Open(Database* database, char* path, int minimumNumberOfTables)
 {
 	database->numberOfTables = 0;

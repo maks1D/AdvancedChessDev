@@ -17,6 +17,21 @@ char* Server_GetTime()
 	return output;
 }
 
+int Server_Initialize(Server* server)
+{
+	server->numberOfStaticFiles = 0;
+	server->maximumNumberOfStaticFiles = 1;
+	server->staticFiles = malloc(sizeof(Server_StaticFile));
+
+	if (server->staticFiles == NULL)
+	{
+		ERROR("Failed to allocate memory!");
+		return 0;
+	}
+
+	return 1;
+}
+
 void Server_CloseConnection(Server* server, int connectionIndex)
 {
 #ifdef WIN32
@@ -37,7 +52,7 @@ void Server_SendWebsocketMessage(Server* server, int connectionIndex, char* mess
 void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 {
 	server->numberOfConnections = 0;
-	server->maxConnections = 1;
+	server->maximumNumberOfConnections = 1;
 	server->connectionsIndexes = malloc(sizeof(int));
 	server->connections = malloc(sizeof(Server_Connection));
 
@@ -154,7 +169,7 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 
 	while (1)
 	{
-		for (int index = 0; index < server->maxConnections; index++)
+		for (int index = 0; index < server->maximumNumberOfConnections; index++)
 		{
 			if (server->connections[index].type == SERVER_CONNECTION_TYPE_UNCONNECTED)
 			{
@@ -250,7 +265,7 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 					}
 				}
 
-				server->websocketPacketHandler(server, index, &buffer[begin], bufferLength - begin);
+				server->websocketPacketHandler(index, &buffer[begin], bufferLength - begin);
 			}
 			else
 			{
@@ -369,7 +384,7 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 
 					server->connections[index].userId = -1;
 					server->connections[index].type = SERVER_CONNECTION_TYPE_WEBSOCKET;
-					server->websocketConnectionHandler(server, index, cookieHeader);
+					server->websocketConnectionHandler(index, cookieHeader);
 
 					sprintf(websocketKeyUnhashed, "%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", websocketKeyHeader);
 
@@ -417,10 +432,10 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 			continue;
 		}
 
-		if (server->maxConnections == server->numberOfConnections)
+		if (server->maximumNumberOfConnections == server->numberOfConnections)
 		{
-			int* newConnectionIndexes = realloc(server->connectionsIndexes, 2 * server->maxConnections * sizeof(int));
-			Server_Connection* newConnections = realloc(server->connections, 2 * server->maxConnections * sizeof(Server_Connection));
+			int* newConnectionIndexes = realloc(server->connectionsIndexes, 2 * server->maximumNumberOfConnections * sizeof(int));
+			Server_Connection* newConnections = realloc(server->connections, 2 * server->maximumNumberOfConnections * sizeof(Server_Connection));
 
 			if (newConnectionIndexes == NULL || newConnections == NULL)
 			{
@@ -428,15 +443,15 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 				return;
 			}
 
-			server->connectionsIndexes = newConnectionIndexes;
-			server->connections = newConnections;
-
-			for (int connectionIndex = server->maxConnections; connectionIndex < 2 * server->maxConnections; connectionIndex++)
+			for (int connectionIndex = server->maximumNumberOfConnections; connectionIndex < 2 * server->maximumNumberOfConnections; connectionIndex++)
 			{
+				server->connections[connectionIndex].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
 				server->connectionsIndexes[connectionIndex] = connectionIndex;
 			}
 
-			server->maxConnections *= 2;
+			server->connectionsIndexes = newConnectionIndexes;
+			server->connections = newConnections;
+			server->maximumNumberOfConnections *= 2;
 		}
 
 		int connectionIndex = server->connectionsIndexes[server->numberOfConnections];
@@ -447,22 +462,22 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 	}
 }
 
-int Server_SetStaticFilesMaxSize(Server* server, int size)
-{
-	server->numberOfStaticFiles = 0;
-	server->staticFiles = malloc(sizeof(Server_StaticFile) * size);
-
-	if (server->staticFiles == NULL)
-	{
-		ERROR("Failed to allocate memory!");
-		return 0;
-	}
-
-	return 1;
-}
-
 int Server_AddStaticFile(Server* server, char* path, char* url, char* contentType)
 {
+	if (server->numberOfStaticFiles == server->maximumNumberOfStaticFiles)
+	{
+		Server_StaticFile* newStaticFiles = realloc(server->staticFiles, sizeof(Server_StaticFile) * 2 * server->maximumNumberOfStaticFiles);
+
+		if (newStaticFiles == NULL)
+		{
+			ERROR("Failed to allocate memory!");
+			return 0;
+		}
+
+		server->staticFiles = newStaticFiles;
+		server->maximumNumberOfStaticFiles *= 2;
+	}
+
 	FILE* file = fopen(path, "rb");
 
 	if (file == NULL)

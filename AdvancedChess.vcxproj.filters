@@ -50,7 +50,7 @@
     <ClInclude Include="src\crypto.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\error.h">
+    <ClInclude Include="src\headers.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\handlers.h">

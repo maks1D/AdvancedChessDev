@@ -1,12 +1,5 @@
-#ifdef WIN32
-#define _CRT_SECURE_NO_WARNINGS
-#endif
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "error.h"
+#pragma once
+#include "headers.h"
 
 #define CONFIGURATION_PARSING_MODE_INDEX_BEGIN 0
 #define CONFIGURATION_PARSING_MODE_INDEX 1

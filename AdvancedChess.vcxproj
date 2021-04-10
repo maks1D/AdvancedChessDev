@@ -59,6 +59,7 @@
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -81,6 +82,7 @@
       <ConformanceMode>true</ConformanceMode>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -110,9 +112,9 @@
     <ClInclude Include="src\chess.h" />
     <ClInclude Include="src\configuration.h" />
     <ClInclude Include="src\database.h" />
-    <ClInclude Include="src\error.h" />
-    <ClInclude Include="src\crypto.h" />
     <ClInclude Include="src\handlers.h" />
+    <ClInclude Include="src\headers.h" />
+    <ClInclude Include="src\crypto.h" />
     <ClInclude Include="src\server.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,9 +1,5 @@
 #include "configuration.h"
 
-#ifdef WIN32
-#pragma warning (disable: 6385 6386)
-#endif
-
 int Configuration_Load(Configuration* configuration, char* path)
 {
 	FILE* file = fopen(path, "rb");
