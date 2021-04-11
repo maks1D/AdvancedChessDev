@@ -32,21 +32,87 @@ int Server_Initialize(Server* server)
 	return 1;
 }
 
-void Server_CloseConnection(Server* server, int connectionIndex)
+int Server_AddStaticFile(Server* server, char* path, char* url, char* contentType)
 {
-#ifdef WIN32
-	closesocket(server->connections[connectionIndex].socket);
-#else
-	close(connections[index].socket);
-#endif
-	server->numberOfConnections--;
-	server->connections[connectionIndex].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-	server->connectionsIndexes[server->numberOfConnections] = connectionIndex;
+	if (server->numberOfStaticFiles == server->maximumNumberOfStaticFiles)
+	{
+		Server_StaticFile* newStaticFiles = realloc(server->staticFiles, sizeof(Server_StaticFile) * 2 * server->maximumNumberOfStaticFiles);
+
+		if (newStaticFiles == NULL)
+		{
+			ERROR("Failed to allocate memory!");
+			return 0;
+		}
+
+		server->staticFiles = newStaticFiles;
+		server->maximumNumberOfStaticFiles *= 2;
+	}
+
+	FILE* file = fopen(path, "rb");
+
+	if (file == NULL)
+	{
+		ERROR("Failed to open a static file!");
+		return 0;
+	}
+
+	fseek(file, 0L, SEEK_END);
+	int length = ftell(file);
+
+	if (length == -1)
+	{
+		ERROR("Failed to read a static file!");
+		return 0;
+	}
+
+	rewind(file);
+
+	server->staticFiles[server->numberOfStaticFiles].buffer = malloc(length);
+
+	if (server->staticFiles[server->numberOfStaticFiles].buffer == NULL)
+	{
+		ERROR("Failed to allocate memory!");
+		return 0;
+	}
+
+	if (fread(server->staticFiles[server->numberOfStaticFiles].buffer, sizeof(char), length, file) != length)
+	{
+		ERROR("Failed to read a static file!");
+		return 0;
+	}
+
+	fclose(file);
+
+	server->staticFiles[server->numberOfStaticFiles].path = path;
+	server->staticFiles[server->numberOfStaticFiles].url = url;
+	server->staticFiles[server->numberOfStaticFiles].contentType = contentType;
+	server->staticFiles[server->numberOfStaticFiles].bufferLength = length;
+	server->numberOfStaticFiles++;
+
+	return 1;
 }
 
 void Server_SendWebsocketMessage(Server* server, int connectionIndex, char* message, int length)
 {
 
+}
+
+void Server_CloseConnection(Server* server, int connectionIndex)
+{
+	if (server->connections[connectionIndex].type == SERVER_CONNECTION_TYPE_WEBSOCKET)
+	{
+		server->onClose(connectionIndex);
+	}
+
+#ifdef WIN32
+	closesocket(server->connections[connectionIndex].socket);
+#else
+	close(connections[index].socket);
+#endif
+
+	server->numberOfConnections--;
+	server->connections[connectionIndex].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
+	server->connectionsIndexes[server->numberOfConnections] = connectionIndex;
 }
 
 void Server_Start(Server* server, char* port, char* internetProtocolVersion)
@@ -201,7 +267,7 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 				{
 					Server_CloseConnection(server, index);
 				}
-
+				
 				continue;
 			}
 
@@ -265,7 +331,7 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 					}
 				}
 
-				server->websocketPacketHandler(index, &buffer[begin], bufferLength - begin);
+				server->onMessage(index, &buffer[begin], bufferLength - begin);
 			}
 			else
 			{
@@ -384,7 +450,7 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 
 					server->connections[index].userId = -1;
 					server->connections[index].type = SERVER_CONNECTION_TYPE_WEBSOCKET;
-					server->websocketConnectionHandler(index, cookieHeader);
+					server->onOpen(index, cookieHeader);
 
 					sprintf(websocketKeyUnhashed, "%s258EAFA5-E914-47DA-95CA-C5AB0DC85B11", websocketKeyHeader);
 
@@ -434,10 +500,10 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 
 		if (server->maximumNumberOfConnections == server->numberOfConnections)
 		{
-			int* newConnectionIndexes = realloc(server->connectionsIndexes, 2 * server->maximumNumberOfConnections * sizeof(int));
+			int* newConnectionsIndexes = realloc(server->connectionsIndexes, 2 * server->maximumNumberOfConnections * sizeof(int));
 			Server_Connection* newConnections = realloc(server->connections, 2 * server->maximumNumberOfConnections * sizeof(Server_Connection));
 
-			if (newConnectionIndexes == NULL || newConnections == NULL)
+			if (newConnectionsIndexes == NULL || newConnections == NULL)
 			{
 				ERROR("Failed to allocate memory!");
 				return;
@@ -445,11 +511,11 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 
 			for (int connectionIndex = server->maximumNumberOfConnections; connectionIndex < 2 * server->maximumNumberOfConnections; connectionIndex++)
 			{
-				server->connections[connectionIndex].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
-				server->connectionsIndexes[connectionIndex] = connectionIndex;
+				newConnections[connectionIndex].type = SERVER_CONNECTION_TYPE_UNCONNECTED;
+				newConnectionsIndexes[connectionIndex] = connectionIndex;
 			}
 
-			server->connectionsIndexes = newConnectionIndexes;
+			server->connectionsIndexes = newConnectionsIndexes;
 			server->connections = newConnections;
 			server->maximumNumberOfConnections *= 2;
 		}
@@ -460,64 +526,4 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 		server->connections[connectionIndex].socket = socket;
 		server->numberOfConnections++;
 	}
-}
-
-int Server_AddStaticFile(Server* server, char* path, char* url, char* contentType)
-{
-	if (server->numberOfStaticFiles == server->maximumNumberOfStaticFiles)
-	{
-		Server_StaticFile* newStaticFiles = realloc(server->staticFiles, sizeof(Server_StaticFile) * 2 * server->maximumNumberOfStaticFiles);
-
-		if (newStaticFiles == NULL)
-		{
-			ERROR("Failed to allocate memory!");
-			return 0;
-		}
-
-		server->staticFiles = newStaticFiles;
-		server->maximumNumberOfStaticFiles *= 2;
-	}
-
-	FILE* file = fopen(path, "rb");
-
-	if (file == NULL)
-	{
-		ERROR("Failed to open a static file!");
-		return 0;
-	}
-
-	fseek(file, 0L, SEEK_END);
-	int length = ftell(file);
-
-	if (length == -1)
-	{
-		ERROR("Failed to read a static file!");
-		return 0;
-	}
-
-	rewind(file);
-
-	server->staticFiles[server->numberOfStaticFiles].buffer = malloc(length);
-
-	if (server->staticFiles[server->numberOfStaticFiles].buffer == NULL)
-	{
-		ERROR("Failed to allocate memory!");
-		return 0;
-	}
-
-	if (fread(server->staticFiles[server->numberOfStaticFiles].buffer, sizeof(char), length, file) != length)
-	{
-		ERROR("Failed to read a static file!");
-		return 0;
-	}
-
-	fclose(file);
-
-	server->staticFiles[server->numberOfStaticFiles].path = path;
-	server->staticFiles[server->numberOfStaticFiles].url = url;
-	server->staticFiles[server->numberOfStaticFiles].contentType = contentType;
-	server->staticFiles[server->numberOfStaticFiles].bufferLength = length;
-	server->numberOfStaticFiles++;
-
-	return 1;
 }

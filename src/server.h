@@ -48,12 +48,14 @@ typedef struct
 	int numberOfConnections;
 	int* connectionsIndexes;
 	Server_Connection* connections;
-	void (*websocketConnectionHandler)(int, char*);
-	int (*websocketPacketHandler)(int, char*, int);
+	void (*onOpen)(int, char*);
+	void (*onMessage)(int, char*, int);
+	void (*onClose)(int);
 } Server;
 
+char* Server_GetTime();
 int Server_Initialize(Server* server);
+int Server_AddStaticFile(Server* server, char* path, char* url, char* contentType);
 void Server_SendWebsocketMessage(Server* server, int connectionIndex, char* message, int length);
 void Server_CloseConnection(Server* server, int socketIndex);
 void Server_Start(Server* server, char* port, char* internetProtocolVersion);
-int Server_AddStaticFile(Server* server, char* path, char* url, char* contentType);

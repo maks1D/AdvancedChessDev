@@ -9,5 +9,6 @@ typedef struct
 } Handlers;
 
 int Handlers_Initialize(Handlers* handlers);
-void Handlers_HandleWebSocketConnection(Handlers* handlers, Server* server, int connectionIndex, char* cookies);
-void Handlers_HandleWebSocketMessage(Handlers* handlers, Server* server, int connectionIndex, char* message, int messageLength);
+void Handlers_OnOpen(Handlers* handlers, Server* server, int connectionIndex, char* cookies);
+void Handlers_OnMessage(Handlers* handlers, Server* server, int connectionIndex, char* message, int messageLength);
+void Handlers_OnClose(Handlers* handlers, Server* server, int connectionIndex);

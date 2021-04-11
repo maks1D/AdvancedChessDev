@@ -7,14 +7,19 @@ Server server;
 Handlers handlers;
 Configuration configuration;
 
-void handleWebSocketConnection(int connectionIndex, char* cookies)
+void Main_OnOpen(int connectionIndex, char* cookies)
 {
-	Handlers_HandleWebSocketConnection(&handlers, &server, connectionIndex, cookies);
+	Handlers_OnOpen(&handlers, &server, connectionIndex, cookies);
 }
 
-void handleWebSocketMessage(int connectionIndex, char* message, int messageLength)
+void Main_OnMessage(int connectionIndex, char* message, int messageLength)
 {
-	Handlers_HandleWebSocketMessage(&handlers, &server, connectionIndex, message, messageLength);
+	Handlers_OnMessage(&handlers, &server, connectionIndex, message, messageLength);
+}
+
+void Main_OnClose(int connectionIndex)
+{
+	Handlers_OnClose(&handlers, &server, connectionIndex);
 }
 
 int main()
@@ -25,8 +30,9 @@ int main()
 	}
 
 
-	server.websocketConnectionHandler = handleWebSocketConnection;
-	server.websocketPacketHandler = handleWebSocketMessage;
+	server.onOpen = Main_OnOpen;
+	server.onMessage = Main_OnMessage;
+	server.onClose = Main_OnClose;
 
 	Server_Start(&server, Configuration_Read(&configuration, "SERVER_PORT"), Configuration_Read(&configuration, "SERVER_INTERNET_PROTOCOL_VERSION"));
 	return 0;
