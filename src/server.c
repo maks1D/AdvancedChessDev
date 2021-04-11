@@ -107,7 +107,7 @@ void Server_CloseConnection(Server* server, int connectionIndex)
 #ifdef WIN32
 	closesocket(server->connections[connectionIndex].socket);
 #else
-	close(connections[index].socket);
+	close(server->connections[connectionIndex].socket);
 #endif
 
 	server->numberOfConnections--;
@@ -497,6 +497,14 @@ void Server_Start(Server* server, char* port, char* internetProtocolVersion)
 		{
 			continue;
 		}
+
+#ifndef WIN32
+		if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
+		{
+			close(socket);
+			continue;
+		}
+#endif
 
 		if (server->maximumNumberOfConnections == server->numberOfConnections)
 		{

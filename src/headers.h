@@ -41,3 +41,9 @@
 #endif
 
 #define ERROR(message) printf("[%s:%d] %s\n", ERROR_FILENAME, __LINE__, message)
+
+#ifdef min
+#undef min
+#endif
+
+#define min(first, second) ((first) > (second) ? (first) : (second))

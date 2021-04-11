@@ -170,11 +170,6 @@ char* Crypto_RandomString()
 {
 	unsigned char bytes[32];
 
-	if (bytes == NULL)
-	{
-		return NULL;
-	}
-
 #ifdef WIN32
 	if (FAILED(BCryptGenRandom(NULL, bytes, 32, BCRYPT_USE_SYSTEM_PREFERRED_RNG)))
 	{
